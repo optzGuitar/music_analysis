@@ -17,14 +17,14 @@ seqlen(S,I) :- seq(S,I,_), not seq(S,I+1,_).
 { pat(I,E) : element(E) }1 :- index(I).
 % generate negative part (like this to avoid symmetric patterns)
 minneg { neg(I,E) : element(E), index(I), index(I+1) } maxneg.
-:- #count {I, 1 : pat(I,_); I, 2 : neg(I,_)} <= patlenmin.
+:- #count {I, 1 : pat(I,_); I, 2 : neg(I,_)} = C, 1{C < patlenmin; C > patlenmax}.
 :- not pat(1, _).
 :- pat(I, _), not pat(I-1,_), I > 1.
 :- neg(I,_), not pat(I,_).
 
 poslen(I) :- pat(I,_), not pat(I+1,_).
 
-% ensure the pattern is admissible
+% ensure the pattern is optimized
 :- pat(I,E), neg((I;I-1),E).
 
 % the pattern must support the sequence

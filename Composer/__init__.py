@@ -1,3 +1,4 @@
+from os import error
 import clingo
 import random
 import re
@@ -58,6 +59,7 @@ class Composition:
         for file in self._composer_files:
             self._ctl.load(file)
 
+        self._rand_heur = random_heuristics
         self._curr_model = []
         self._time_max = 16
         self._seq_distance = None
@@ -138,15 +140,14 @@ class Composition:
         rules = []
         pos_rules = 0
         for body, type in self._additional_rules:
-            joined_body = ",".join(body)
             if type:
-                rules.append(f":- {joined_body}.")
+                rules.append(f":- {body}.")
             else:
-                rules.append(f"z{pos_rules} :- {joined_body}.")
+                rules.append(f"z{pos_rules} :- {body}.")
                 rules.append(f":- not z{pos_rules}.")
                 pos_rules += 1
 
-        #with open("./add_rules.lp", "w") as file:
+        # with open("./add_rules.lp", "w") as file:
         #    file.writelines(rules)
         #    file.writelines(self._general_atoms)
 
@@ -182,83 +183,42 @@ class Composition:
             file.writelines(model_string)
 
     def validate(self, timeout=120, remove=True):
-        rules = []
-        pos_rules = 0
-        err_count = 0
-        rule_translate = {}
-        for body, type in self._additional_rules:
-            joined_body = ",".join(body)
-            if type:
-                rules.append(f"error({err_count}) :- {joined_body}.")
-                rule_translate[f"error({err_count})"] = (body, True)
-                err_count += 1
-            else:
-                rules.append(f"z{pos_rules} :- {joined_body}.")
-                rules.append(f"error({err_count}) :- not z{pos_rules}.")
-                rule_translate[f"error({err_count})"] = (body, False)
-                err_count += 1
-                pos_rules += 1
 
-        rules.append(f"positions(0..{self.Time_Max}).")
-        rules.append(f"track(0).")
-        rules.append(f"keys(0,0,{self.Time_Max},{self._key}).")
-        rules.append(f"range({self._range[0]}..{self._range[1]}).")
-        rules.append("#minimize { 1,E : error(E) }.")
-        rules.append("#show error/1.")
-        #with open("./val_rules.lp", "w") as file:
-        #    file.writelines(rules)
-        #    file.writelines(self._general_atoms)
-        val_ctl = clingo.Control(["0", "--opt-mode=opt"])
-        val_ctl.add("base", [], "".join(rules))
-        val_ctl.add("base", [], "".join(self._general_atoms))
-        for file in self._composer_files:
-            val_ctl.load(file)
+        optComp = OptimizedComposition(
+            self._range,
+            composer_files=self._composer_files,
+            key=self._key,
+            parallel_mode=self._ctl.configuration.solve.parallel_mode,
+            random_heuristics=self._rand_heur,
+            negative_optimized=True,
+        )
+        optComp.from_composition(self)
 
-        models = []
-        val_ctl.ground([("base", [])])
-        with val_ctl.solve(
-            on_model=lambda x: models.append(x.symbols(shown=True)), async_=True
-        ) as handle:
-            while timeout > 0:
-                time.sleep(5)
-                timeout -= 5
-                try:
-                    if val_ctl.statistics["summary"]["exhausted"] == 1:
-                        break
-                except RuntimeError:
-                    pass
-            handle.cancel()
-            res = handle.get()
-        # with val_ctl.solve(
-        #     on_model=lambda x: models.append(x.symbols(shown=True)),
-        #     yield_=True,
-        #     async_=True,
-        # ) as handle:
-        # time1 = time()
-        # wres = handle.wait(timeout - (time() - time1))
-        # for model in handle:
-        #     models.append(model)
-        #     wres = handle.wait(timeout - (time() - time1))
-        #     print(f"{wres}  {timeout - (time() - time1):2f}")
+        rule_translate = optComp.ground(True)
+        res, model = optComp.generate(timeout)
 
-        # handle.cancel()
-        # res = handle.get()
-        # print(f"Number of found models: {len(models)}")
         if res.satisfiable:
             if remove:
-                for symb in models[-1]:
+                for symb in model:
                     if symb.match("error", 1):
                         self._additional_rules.remove(rule_translate[str(symb)])
             problem_rules = []
             m = []
-            for symb in models[-1]:
+            for symb in model:
                 if symb.match("error", 1):
                     problem_rules.append(rule_translate[str(symb)])
                 else:
                     m.append(symb)
             self._curr_model = m
-            return problem_rules, res, m, val_ctl
-        return [], None, [], val_ctl
+            return problem_rules, res, m, optComp._ctl
+        return [], None, [], optComp._ctl
+
+    def from_composition(self, other):
+        self._additional_rules = other._additional_rules
+        self._general_atoms = other._general_atoms
+        self.Time_Max = other.Time_Max
+        self._key = other._key
+        self._range = other._range
 
     def addPositivePatterns(self, patterns, orig_pos, track=0, distance=None):
         """
@@ -271,10 +231,12 @@ class Composition:
             The position inside the original note atom for which these patterns were generated.
         """
         for pattern in patterns:
-            joined_pattern = self._pos_pattern_to_composer(pattern, orig_pos, track)
+            body = pattern.to_rule_body(
+                self._orig_pos_to_atom[orig_pos], track, False, self._seq_distance
+            )
             if distance != None:
-                joined_pattern = self._to_connected(joined_pattern, distance)
-            self._additional_rules.append((joined_pattern, False))
+                body = self._to_connected(body, distance)
+            self._additional_rules.append((body, False))
         self.NumPatterns += len(patterns)
 
     def addNegativePatterns(self, patterns, orig_pos, track=0, distance=None):
@@ -289,141 +251,26 @@ class Composition:
         """
 
         for pattern in patterns:
-            joined_pattern = self._neg_pattern_to_composer(pattern, orig_pos, track)
+            body = pattern.to_rule_body(
+                self._orig_pos_to_atom[orig_pos], track, False, self._seq_distance
+            )
             if distance != None:
-                joined_pattern = self._to_connected(joined_pattern, distance)
-            self._additional_rules.append((joined_pattern, True))
+                body = self._to_connected(body, distance)
+            self._additional_rules.append((body, True))
         self.NumPatterns += len(patterns)
 
     def addIntervalPatterns(
         self, patterns, orig_pos, track=0, neg=False, distance=None
     ):
         for pattern in patterns:
-            if neg:
-                body = self._neg_pattern_to_composer(
-                    pattern, orig_pos, track, intervals=True
-                )
-                if distance != None:
-                    body = self._to_connected(body, distance)
-                self._additional_rules.append((body, True))
-            else:
-                body = self._pos_pattern_to_composer(
-                    pattern, orig_pos, track, intervals=True
-                )
-                if distance != None:
-                    body = self._to_connected(body, distance)
-                self._additional_rules.append((body, False))
+            body = pattern.to_rule_body(
+                self._orig_pos_to_atom[orig_pos], track, True, self._seq_distance
+            )
+            if distance != None:
+                body = self._to_connected(body, distance)
+            self._additional_rules.append((body, neg))
+
         self.NumPatterns += len(patterns)
-
-    def _pos_pattern_to_composer(self, pattern, orig_pos, track=0, intervals=False):
-        """
-        Converts the pat atoms into play atoms. Play atoms get generated by the composition encoding.
-        pattern : list
-            The pattern to be converted into play atoms
-        orig_pos : int
-            The position inside the original note atom for which this pattern was generated.
-        """
-        sorted_pattern = sorted(pattern)
-        p = 0
-        body = []
-
-        for atom in sorted_pattern:
-            if atom.match("support", 1):
-                continue
-            atom_info = str(atom.arguments[1])
-
-            if not intervals:
-                body.append(
-                    f"{self._orig_pos_to_atom[orig_pos]}({track},P{p},{atom_info})"
-                )
-            else:
-                body.append(f"{self._orig_pos_to_atom[orig_pos]}({track},P{p},I{p})")
-                body.append(f"I{p+1}-I{p}={atom_info}")
-            body.append(f"P{p}<P{p+1}")
-
-            p += 1
-
-        del body[-1]
-        if intervals:
-            del body[-1]
-        if self._seq_distance != None:
-            body.append(f"P{p-1}-P0 <= {self._seq_distance},P{p-1}-P0>0")
-
-        return body
-
-    def _neg_pattern_to_composer(self, pattern, orig_pos, track=0, intervals=False):
-        def split_atoms():
-            pos = []
-            neg = []
-            for i in pattern:
-                if i.match("pat", 2):
-                    pos.append(i)
-                elif i.match("neg", 2):
-                    neg.append(i)
-
-            pos = sorted(pos)
-            neg = sorted(neg)
-            combined = []
-            for i in pos:
-                combined.append(i)
-                p = str(i.arguments[0])
-                while len(neg) != 0 and str(neg[0].arguments[0]) == p:
-                    combined.append(neg.pop())
-
-            return combined
-
-        sorted_pattern = split_atoms()
-        p = 0
-        body = []
-        curr_neg_pos = []
-
-        for atom in sorted_pattern:
-            if atom.match("support", 1):
-                continue
-            atom_s = str(atom)
-
-            atm = str(atom.arguments[1]) if not intervals else f"I{p}"
-            if atom.match("pat", 2):
-                if not curr_neg_pos:
-                    if p > 0:
-                        body.append(f"P{p}>P{p-1}")
-                    if intervals and p > 0:
-                        body.append(f"I{p}-I{p-1}={atm}")
-                else:
-                    for pos in curr_neg_pos:
-                        body.append(f"P{p}>P{pos}")
-                        if intervals:
-                            body.append(f"I{p}-I{p-1}={atm}")
-                    curr_neg_pos.clear()
-
-                body.append(f"{self._orig_pos_to_atom[orig_pos]}({track},P{p},{atm})")
-
-            elif atom.match("neg", 2):
-                atm = str(atom.arguments[1]) if not intervals else f"I{p}"
-                if not curr_neg_pos:
-                    body.append(
-                        f"{self._orig_pos_to_atom[orig_pos]}({track},P{p},{atm})"
-                    )
-                    body.append(f"P{p}>P{p-1}")
-                    if intervals:
-                        body.append(f"I{p}-I{p-1}={atm}")
-                    curr_neg_pos.append(p)
-                else:
-                    body.append(
-                        f"{self._orig_pos_to_atom[orig_pos]}({track},P{p},{atm})"
-                    )
-                    min_pos = min(curr_neg_pos) - 1
-                    body.append(f"P{p}>P{min_pos}")
-                    if intervals:
-                        body.append(f"I{p}-I{min_pos}={atm}")
-                    curr_neg_pos.append(p)
-
-            p += 1
-
-        if self._seq_distance != None:
-            body.append(f"P{p-1}-P0 <= {self._seq_distance},P{p-1}-P0>0")
-
-        return body
 
     def _to_connected(self, composer_pattern, distance=1):
         def get_pos(pattern):
@@ -521,6 +368,10 @@ class OptimizedComposition(Composition):
 
     def __init__(
         self,
+        range,
+        composer_files=None,
+        parallel_mode=None,  # x,{split;compete}
+        key="(0,(major,ionian))",
         random_heuristics=False,
         positive_optimized=True,
         negative_optimized=False,
@@ -537,60 +388,69 @@ class OptimizedComposition(Composition):
         negative_optimized : bool
             If true (defualt: false) the number of negative pattern used if optimized.
         """
-        super().__init__(random_heuristics)
+        super().__init__(range, random_heuristics, composer_files, parallel_mode, key)
+        self._curr_model = []
         self._positive_optimized = positive_optimized
         self._negative_optimized = negative_optimized
         self._intervals_optimized = intervals_optimized
 
-    def addPositivePattern(self, pattern, orig_pos, track=0):
-        """
-        Adds a positive pattern to the composition.
-        Parameters
-        ----------
-        pattern : list
-            A list of all the pat atoms of the pattern.
-        orig_pos : int
-            The position inside the original note atom for which this pattern was generated.
-        """
-        joined_pattern = self._pos_pattern_to_composer(pattern, orig_pos, track)
-        c = "~" if self._positive_optimized else "-"
-        end = "[-1]" if self._positive_optimized else ""
-        self._additional_rules.append((joined_pattern, False))
+    def ground(self, error_head=False):
+        self._general_atoms.append(f"positions(0..{self.Time_Max}).")
+        self._general_atoms.append(f"track(0).")
+        self._general_atoms.append(f"keys(0,0,{self.Time_Max},{self._key}).")
+        self._general_atoms.append(f"range({self._range[0]}..{self._range[1]}).")
 
-    def addNegativePattern(self, pattern, orig_pos, track=0):
-        """
-        Adds a negative pattern to the composition.
-        Parameters
-        ----------
-        pattern : list
-            A list of all the pat atoms of the pattern.
-        orig_pos : int
-            The position inside the original note atom for which this pattern was generated.
-        """
-        joined_pattern = self._neg_pattern_to_composer(pattern, orig_pos, track)
-        c = "~" if self._negative_optimized else "-"
-        end = "[1]" if self._negative_optimized else ""
-        self._additional_rules.append([f":{c} {joined_pattern}. {end}"])
-
-    def addIntervalPattern(self, pattern, orig_pos, track=0, neg=False):
-        pos = len(self._additional_atoms)
-        if neg:
-            body = self._neg_pattern_to_composer(
-                pattern, orig_pos, track, intervals=True
-            )
-            if self._intervals_optimized:
-                self._additional_rules([f":~ {body}. [1]"])
+        rules = []
+        pos_rules = 0
+        err_count = 0
+        rule_translate = {}
+        for body, type in self._additional_rules:
+            head = f"error({err_count})" if error_head else ""
+            if type:
+                c = "~" if self._negative_optimized and not error_head else "-"
+                end = "[-1]" if self._negative_optimized and not error_head else ""
+                rules.append(f"{head}:{c} {body}. {end}")
             else:
-                self._additional_rules.append([f":- {body}."])
-        else:
-            body = self._pos_pattern_to_composer(
-                pattern, orig_pos, track, intervals=True
-            )
-            symb = "~" if self._intervals_optimized else "-"
-            end = "[-1]" if self._intervals_optimized else ""
-            self._additional_rules.append(
-                [f"y{pos} :- {body}.", f":{symb} not y{pos}. {end}"]
-            )
+                c = "~" if self._positive_optimized and not error_head else "-"
+                end = "[-1]" if self._positive_optimized and not error_head else ""
+                rules.append(f"z{pos_rules} :- {body}.")
+                rules.append(f"{head}:{c} not z{pos_rules}. {end}")
+                pos_rules += 1
+
+            if error_head:
+                rule_translate[f"error({err_count})"] = (body, type)
+                err_count += 1
+
+        if error_head:
+            rules.append("#minimize { 1,E : error(E) }.")
+            rules.append("#show error/1.")
+
+        self._ctl.add("base", [], "".join(self._general_atoms))
+        self._ctl.add("base", [], "".join(rules))
+        self._ctl.ground([("base", [])])
+        if error_head:
+            return rule_translate
+
+    def generate(self, timeout):
+        """
+        Generates a new musical piece.
+        """
+
+        self._ctl.configuration.solve.models = 0
+        self._ctl.configuration.solve.opt_mode = "opt"
+
+        def model_handler(model):
+            self._curr_model.append(model.symbols(shown=True))
+
+        with self._ctl.solve(async_=True, on_model=model_handler) as handle:
+            tim = time.time()
+            while time.time() - tim < timeout:
+                print(f"Validating since {time.time() - tim:.1f}s", end="\r")
+                if handle.wait(1):
+                    if handle.get().exhausted:
+                        break
+            handle.cancel()
+            return handle.get(), self._curr_model[-1]
 
 
 class DistanceComposition(Composition):

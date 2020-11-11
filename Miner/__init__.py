@@ -6,6 +6,7 @@ import mido
 import time
 import pprint
 from .ptypes import PatType
+from Data import Pattern
 
 # all interesting positions in the note item
 """All possibly interesting positions of the note item"""
@@ -290,7 +291,8 @@ class Job:
                 res = handle.get()
         else:
             with control.solve(
-                on_model=lambda m: result.append(m.symbols(shown=True)), async_=True
+                on_model=lambda m: result.append(Pattern(m.symbols(shown=True))),
+                async_=True,
             ) as handle:
                 handle.wait(tout)
                 handle.cancel()
