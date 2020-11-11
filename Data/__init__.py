@@ -1,3 +1,11 @@
+_orig_pos_to_atom = {
+    3: "chosennote",
+    4: "chosenvel",
+    5: "chosenlength",
+    6: "chosendist",
+}
+
+
 class Item:
     def __init__(self, pos, value, sign="pat") -> None:
         self.position = pos
@@ -37,7 +45,7 @@ class Item:
 
 
 class Pattern:
-    def __init__(self, atoms) -> None:
+    def __init__(self, atoms, type, position) -> None:
         items = []
         for atm in atoms:
             if atm.match("support", 1):
@@ -50,19 +58,23 @@ class Pattern:
                 )
             )
         items.sort()
-        self.itmes = items
+        self.items = items
+        self.type = type
+        self.position = position if position > 0 else position * -1
 
     def __eq__(self, o: object) -> bool:
         if type(o) == Pattern:
-            length = len(self.itmes)
+            length = len(self.items)
             if length != len(o.items):
+                return False
+            if self.position != o.position:
                 return False
             t = True
             for itm in range(length):
                 t = True
                 for itm2 in range(length):
                     index = (itm + itm2) % length
-                    if self.itmes[index] != o.items[itm2]:
+                    if self.items[index] != o.items[itm2]:
                         t = False
                         break
                 if t:
@@ -78,13 +90,11 @@ class Pattern:
 
     def __repr__(self) -> str:
         data = []
-        for itm in self.itmes:
+        for itm in self.items:
             data.append(itm.__repr__())
         return "P[" + ", ".join(data) + "]"
 
-    def to_rule_body(
-        self, chooseatom: str, track=0, intervals=False, seq_distance=None,
-    ) -> str:
+    def to_rule_body(self, track=0, intervals=False, seq_distance=None,) -> str:
         """Converts the current pattern into a rule body used by the composer.
 
         Args:
@@ -102,8 +112,9 @@ class Pattern:
         last_neg = False
         ints = []
         last_pos_i = 0
+        chooseatom = _orig_pos_to_atom[self.position]
 
-        for l, itm in enumerate(self.itmes):
+        for l, itm in enumerate(self.items):
 
             if itm.sign == "pat" and last_neg:
                 data.append(f"P{pos}<P{pos+1}")
@@ -118,10 +129,10 @@ class Pattern:
 
             if itm.sign == "pat":
                 last_pos_i = i
-                if l != len(self.itmes) - 1:
+                if l != len(self.items) - 1:
                     data.append(f"P{pos}<P{pos+1}")
                     if intervals:
-                        if l != len(self.itmes):
+                        if l != len(self.items):
                             data.append(f"I{i+1}-I{i}={itm.value}")
                         for _i in ints:
                             data.append(f"I{i}-I{_i}={itm.value}")

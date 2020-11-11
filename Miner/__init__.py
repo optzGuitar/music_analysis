@@ -5,7 +5,7 @@ import argparse
 import mido
 import time
 import pprint
-from .ptypes import PatType
+from Data.ptypes import PatType
 from Data import Pattern
 
 # all interesting positions in the note item
@@ -245,7 +245,7 @@ class Job:
         -----------
         name : str
             The name of the strategy to run.
-        position : str
+        position : int
             The position of the ntoe atom to perfom pattern mining on.
         clingo_args : list
             A list which is passed on to clingo containing extra arguments.
@@ -291,7 +291,9 @@ class Job:
                 res = handle.get()
         else:
             with control.solve(
-                on_model=lambda m: result.append(Pattern(m.symbols(shown=True))),
+                on_model=lambda m: result.append(
+                    Pattern(m.symbols(shown=True), name[1], position)
+                ),
                 async_=True,
             ) as handle:
                 handle.wait(tout)
@@ -309,7 +311,7 @@ class Job:
         self, clingo_args=[], timeout=None, quiet=False, stats=False
     ) -> dict:
         """
-        Runs all methods and all position.
+        Runs all methods and all positions.
         Parameters:
         -----------
         clingo_args : list

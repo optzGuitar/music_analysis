@@ -4,7 +4,7 @@ import random
 import re
 from ASPI import ASP_to_MIDI
 import Miner
-from Miner.ptypes import PatType
+from Data.ptypes import PatType
 import time
 
 
@@ -64,12 +64,7 @@ class Composition:
         self._time_max = 16
         self._seq_distance = None
         self._range = (range[0], range[1])
-        self._orig_pos_to_atom = {
-            3: "chosennote",
-            4: "chosenvel",
-            5: "chosenlength",
-            6: "chosendist",
-        }
+
         self._orig_pos_to_space = {
             3: "range",
             4: "velocities",
@@ -164,10 +159,16 @@ class Composition:
             self._curr_model = model.symbols(shown=True)
 
         with self._ctl.solve(async_=True, on_model=model_handler) as handle:
-            term = handle.wait(timeout)
+            tim = time.time()
+            condition = time.time() - tim < timeout if timeout else True
+            while condition:
+                print(f"Generating since {time.time() - tim:.0f}s", end="\r")
+                term = handle.wait(1)
+                condition = time.time() - tim < timeout if timeout else not term
             if not term:
                 handle.cancel()
             # yield in future with .resume()? How does .resume work??
+            print("                                        ", end="\r")
             return handle.get(), self._curr_model
 
     def save(self, path):
@@ -220,56 +221,12 @@ class Composition:
         self._key = other._key
         self._range = other._range
 
-    def addPositivePatterns(self, patterns, orig_pos, track=0, distance=None):
-        """
-        Adds a list of positive patterns to the composition.
-        Parameters
-        ----------
-        patterns : list
-            A list containing multiple patterns
-        orig_pos : int
-            The position inside the original note atom for which these patterns were generated.
-        """
+    def addPatterns(self, patterns, intervals, track=0, distance=None):
         for pattern in patterns:
-            body = pattern.to_rule_body(
-                self._orig_pos_to_atom[orig_pos], track, False, self._seq_distance
-            )
+            body = pattern.to_rule_body(track, intervals, self._seq_distance)
             if distance != None:
                 body = self._to_connected(body, distance)
-            self._additional_rules.append((body, False))
-        self.NumPatterns += len(patterns)
-
-    def addNegativePatterns(self, patterns, orig_pos, track=0, distance=None):
-        """
-        Adds a list of negative patterns to the composition.
-        Parameters
-        ----------
-        patterns : list
-            A list containing multiple patterns
-        orig_pos : int
-            The position inside the original note atom for which these patterns were generated.
-        """
-
-        for pattern in patterns:
-            body = pattern.to_rule_body(
-                self._orig_pos_to_atom[orig_pos], track, False, self._seq_distance
-            )
-            if distance != None:
-                body = self._to_connected(body, distance)
-            self._additional_rules.append((body, True))
-        self.NumPatterns += len(patterns)
-
-    def addIntervalPatterns(
-        self, patterns, orig_pos, track=0, neg=False, distance=None
-    ):
-        for pattern in patterns:
-            body = pattern.to_rule_body(
-                self._orig_pos_to_atom[orig_pos], track, True, self._seq_distance
-            )
-            if distance != None:
-                body = self._to_connected(body, distance)
-            self._additional_rules.append((body, neg))
-
+            self._additional_rules.append((body, bool(pattern.type & PatType.NEGATIVE)))
         self.NumPatterns += len(patterns)
 
     def _to_connected(self, composer_pattern, distance=1):
@@ -302,7 +259,7 @@ class Composition:
                 fact = "trackp" + fact[5:]
             self._general_atoms.append(fact)
 
-    def import_minejob(self, minejob):
+    def import_minejob(self, minejob, filter_patterns=False):
         """
         Easy and convnient way to import a finished job from the Miner packadge.
         Negative Patterns get recognised by "neg" in strategy.
@@ -312,36 +269,27 @@ class Composition:
         minejob : Job
             A finished Job from the Miner packadge.
         """
+        added_patterns = []
+        whole = 0
         self._seq_distance = minejob.SequenceLength
         for strat in minejob.Results:
             for pos in minejob.Results[strat]:
-                if minejob.Results[strat][pos]:
-                    if pos < 0:
-                        self.addIntervalPatterns(
-                            minejob.Results[strat][pos],
-                            pos * -1,
-                            0,
-                            bool(strat[1] & PatType.NEGATIVE),
-                            minejob.Parameters["maxdist"]
-                            if bool(strat[1] & PatType.CONNECTED)
-                            else None,
-                        )
-                    elif strat[1] & PatType.NEGATIVE in strat:
-                        self.addNegativePatterns(
-                            minejob.Results[strat][pos],
-                            pos,
-                            distance=minejob.Parameters["maxdist"]
-                            if bool(strat[1] & PatType.CONNECTED)
-                            else None,
-                        )
-                    else:
-                        self.addPositivePatterns(
-                            minejob.Results[strat][pos],
-                            pos,
-                            distance=minejob.Parameters["maxdist"]
-                            if bool(strat[1] & PatType.CONNECTED)
-                            else None,
-                        )
+                patterns = minejob.Results[strat][pos]
+                whole += len(patterns)
+
+                if patterns:
+                    if filter_patterns:
+                        for pat in patterns:
+                            if pat in added_patterns:
+                                patterns.remove(pat)
+                        added_patterns.extend(patterns)
+                    self.addPatterns(
+                        patterns,
+                        pos < 0,
+                        distance=minejob.Parameters["maxdist"]
+                        if bool(strat[1] & PatType.CONNECTED)
+                        else None,
+                    )
 
         for file in minejob.MidiAtoms:
             self.addFacts(minejob.MidiAtoms[file])
@@ -445,11 +393,12 @@ class OptimizedComposition(Composition):
         with self._ctl.solve(async_=True, on_model=model_handler) as handle:
             tim = time.time()
             while time.time() - tim < timeout:
-                print(f"Validating since {time.time() - tim:.1f}s", end="\r")
+                print(f"Optimizing since {time.time() - tim:.0f}s", end="\r")
                 if handle.wait(1):
                     if handle.get().exhausted:
                         break
             handle.cancel()
+            print(f"                                         ", end="\r")
             return handle.get(), self._curr_model[-1]
 
 
