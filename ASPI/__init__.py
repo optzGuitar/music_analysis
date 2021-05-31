@@ -1,8 +1,8 @@
 import mido
-from .Core.Tracker import MidiNoteLengthTracker, ASPNoteTracker
+from .Tracker import MidiNoteLengthTracker, ASPNoteTracker
 import os
 from .note import Note
-from .MIDI_Event_Handler import (
+from .Handler.midi_event_handler import (
     note_on_handler,
     note_off_handler,
     prog_change_handler,

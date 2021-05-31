@@ -1,10 +1,8 @@
-from Composer import Composition
+from Composer.Type.base import Composition
 import Miner
 import argparse
 import os
-from pprint import pprint
-import time
-from Miner.ptypes import PatType
+from Data.pattern_type import PatternType
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -30,14 +28,14 @@ minejob.Parameters["maxdist"] = 3
 
 # adding the following encodings to be used in pattern mining:
 # minimum rare encoding
-minejob.Strategies[("con_min_rare", PatType.POSITIVE | PatType.CONNECTED)] = [
+minejob.Strategies[("con_min_rare", PatternType.POSITIVE | PatternType.CONNECTED)] = [
     "./Miner/encodings/connected_candidate.lp",
     "./Miner/encodings/minimal_rare_pattern.lp",
 ]
 # frequent patterns
-minejob.Strategies[("frequent", PatType.POSITIVE)] = ["./Miner/encodings/frequent.lp"]
+minejob.Strategies[("frequent", PatternType.POSITIVE)] = ["./Miner/encodings/frequent.lp"]
 # frequent negative patterns
-minejob.Strategies[("neg_freq", PatType.NEGATIVE)] = [
+minejob.Strategies[("neg_freq", PatternType.NEGATIVE)] = [
     "./Miner/encodings/negative_patterns.lp"
 ]
 

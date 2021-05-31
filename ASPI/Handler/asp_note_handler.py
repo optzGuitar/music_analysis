@@ -1,8 +1,5 @@
-from .note import Note, LETTER_TO_KEYNUMBER
+from ..note import Note, LETTER_TO_KEYNUMBER
 import mido
-
-# track and position positinging iniode the atom is always the same
-
 
 def note_handler(atom, tracker):
     """handles the note atoms in the ASPNoteTracker class"""

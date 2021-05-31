@@ -1,5 +1,4 @@
-import numpy as np
-from .note import LETTER_TO_KEYNUMBER
+from ..note import LETTER_TO_KEYNUMBER
 
 
 def note_on_handler(event, tracker):
