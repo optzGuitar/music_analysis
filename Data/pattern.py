@@ -1,3 +1,4 @@
+from typing import List
 from .item import Item
 _orig_pos_to_atom = {
     3: "chosennote",
@@ -113,3 +114,6 @@ class Pattern:
             data.append(f"P{pos-1}-P0 <= {seq_distance},P{pos-1}-P0>0")
 
         return ",".join(data)
+
+    def to_pattern_with_id(self, id: int) -> List:
+        return [p.to_indexed_item for p in self.items]

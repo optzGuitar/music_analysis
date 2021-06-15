@@ -1,8 +1,7 @@
-import Composer
 import time
-from .base import Composition
+from .base import CompositionBase
 
-class OptimizedComposition(Composition):
+class OptimizedComposition(CompositionBase):
     """
     This handles the Positive and negative patterns as optimization criterias.
     Dosent work wont fix.
@@ -94,3 +93,33 @@ class OptimizedComposition(Composition):
             handle.cancel()
             print(f"                                         ", end="\r")
             return handle.get(), self._curr_model[-1]
+
+    def validate(self, timeout=120, remove=True):
+        """
+        self._range,
+            composer_files=self._composer_files,
+            key=self._key,
+            parallel_mode=self._ctl.configuration.solve.parallel_mode,
+            random_heuristics=self._rand_heur,
+            negative_optimized=True
+        """
+
+        rule_translate = self.ground(True)
+        res, model = self.generate(timeout)
+
+        if res.satisfiable:
+            if remove:
+                for symb in model:
+                    if symb.match("error", 1):
+                        self._additional_rules.remove(rule_translate[str(symb)])
+            problem_rules = []
+            m = []
+            for symb in model:
+                if symb.match("error", 1):
+                    problem_rules.append(rule_translate[str(symb)])
+                else:
+                    m.append(symb)
+            self._curr_model = m
+            return problem_rules, res, m, self._ctl
+        return [], None, [], self._ctl
+

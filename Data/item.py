@@ -34,3 +34,6 @@ class Item:
 
     def __repr__(self) -> str:
         return f"{self.sign}({self.position},{self.value})"
+
+    def to_indexed_item(self, id: int):
+        return f'{self.sign}({id},{self.position},{self.value})'

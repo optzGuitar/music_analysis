@@ -1,7 +1,7 @@
-from .base import Composition
+from .optimizer import OptimizedComposition
 import random
 
-class DistanceComposition(Composition):
+class DistanceComposition(OptimizedComposition):
     def std_distance(l1, l2):
         l3 = list(set(l1) & set(l2))  # Intersect
         l4 = list(set(l1) - set(l3))  # Difference
@@ -206,7 +206,7 @@ class DistanceComposition(Composition):
                         self.addPositivePatterns(pat, pos, supp)
 
         for file in minejob.MidiAtoms:
-            self.addFacts(minejob.MidiAtoms[file])
+            self.add_facts(minejob.MidiAtoms[file])
 
     def plot_distances(self, save_figure=None):
         def filter_split(st):

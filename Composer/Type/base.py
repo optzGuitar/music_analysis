@@ -1,11 +1,14 @@
+from typing import Iterator, Optional, Tuple, Union
 import clingo
 import random
 import re
+from clingo.solving import Model
 from ASPI import ASP_to_MIDI
 from Data.pattern_type import PatternType
-import time
+import os.path
+from abc import ABC, abstractmethod
 
-class Composition:
+class CompositionBase(ABC):
     """
     This is the main class for controling the composition process.
     """
@@ -32,7 +35,7 @@ class Composition:
         self._additional_rules = []
         self._general_atoms = []
         self._composer_files = (
-            ["./Composer/asp/notes.lp"] if composer_files is None else composer_files
+            ["./Composer/asp/dummy.lp"] if composer_files is None else composer_files
         )
 
         if random_heuristics:
@@ -54,7 +57,9 @@ class Composition:
        #     parallel_mode if parallel_mode != None else "1,compete"
        # )
         for file in self._composer_files:
-            self._ctl.load(file)
+            print(os.path.abspath(file))
+            with open(os.path.abspath(file), 'r') as file:
+                self._ctl.add("base", [], file.read())
 
         self._rand_heur = random_heuristics
         self._curr_model = []
@@ -121,49 +126,18 @@ class Composition:
     def rules_from_file(self, path):
         self._ctl.load(path)
 
-    def ground(self):
-        """Grounds the composition."""
+    @abstractmethod
+    def ground(self, *args, **kwargs):
+        raise NotImplementedError("This is the base method. It has to be implemented in all subclasses.")
 
-        self._general_atoms.append(f"positions(0..{self.Time_Max}).")
-        self._general_atoms.append(f"track(0).")
-        self._general_atoms.append(f"keys(0,0,{self.Time_Max},{self._key}).")
-        self._general_atoms.append(f"range({self._range[0]}..{self._range[1]}).")
+    def _model_handler(self, yield_: bool, model: Model, solve_ctl: clingo.SolveControl):
+        self._curr_model = model.symbols(shown=True)
+        if yield_:
+            solve_ctl.add_nogood([(atm, True) for atm in model.symbols(atoms=True)])
 
-        rules = []
-        pos_rules = 0
-        for body, type in self._additional_rules:
-            if type:
-                rules.append(f":- {body}.")
-            else:
-                rules.append(f"z{pos_rules} :- {body}.")
-                rules.append(f":- not z{pos_rules}.")
-                pos_rules += 1
-
-        self._ctl.add("base", [], "".join(self._general_atoms))
-        self._ctl.add("base", [], "".join(rules))
-        self._ctl.ground([("base", [])])
-
-    def generate(self, timeout=None):
-        """
-        Generates a new musical piece.
-        """
-        #TODO: add found model as no-good and implement yield
-
-        def model_handler(model):
-            self._curr_model = model.symbols(shown=True)
-
-        with self._ctl.solve(async_=True, on_model=model_handler) as handle:
-            tim = time.time()
-            condition = time.time() - tim < timeout if timeout else True
-            while condition:
-                print(f"Generating since {time.time() - tim:.0f}s", end="\r")
-                term = handle.wait(1)
-                condition = time.time() - tim < timeout if timeout else not term
-            if not term:
-                handle.cancel()
-            
-            print("                                        ", end="\r")
-            return handle.get(), self._curr_model
+    @abstractmethod
+    def generate(self, yield_=True, timeout=None) -> Union[Tuple[clingo.SolveResult, Optional[clingo.Model]], Iterator[clingo.Model]]:
+        raise NotImplementedError("This is the base method. It has to be implemented in all subclasses.")
 
     def save(self, path):
         """
@@ -177,38 +151,6 @@ class Composition:
             model_string = [f"{s}." for s in self._curr_model]
             file.writelines(model_string)
 
-    def validate(self, timeout=120, remove=True):
-
-        #TODO: remodel dependency tree
-        optComp = OptimizedComposition(
-            self._range,
-            composer_files=self._composer_files,
-            key=self._key,
-            parallel_mode=self._ctl.configuration.solve.parallel_mode,
-            random_heuristics=self._rand_heur,
-            negative_optimized=True,
-        )
-        optComp.from_composition(self)
-
-        rule_translate = optComp.ground(True)
-        res, model = optComp.generate(timeout)
-
-        if res.satisfiable:
-            if remove:
-                for symb in model:
-                    if symb.match("error", 1):
-                        self._additional_rules.remove(rule_translate[str(symb)])
-            problem_rules = []
-            m = []
-            for symb in model:
-                if symb.match("error", 1):
-                    problem_rules.append(rule_translate[str(symb)])
-                else:
-                    m.append(symb)
-            self._curr_model = m
-            return problem_rules, res, m, optComp._ctl
-        return [], None, [], optComp._ctl
-
     def from_composition(self, other):
         self._additional_rules = other._additional_rules
         self._general_atoms = other._general_atoms
@@ -216,7 +158,7 @@ class Composition:
         self._key = other._key
         self._range = other._range
 
-    def addPatterns(self, patterns, intervals, track=0, distance=None):
+    def add_patterns(self, patterns, intervals, track=0, distance=None):
         for pattern in patterns:
             body = pattern.to_rule_body(track, intervals, self._seq_distance)
             if distance != None:
@@ -236,7 +178,7 @@ class Composition:
 
         return composer_pattern
 
-    def addFacts(self, facts):
+    def add_facts(self, facts):
         """
         Adds multiple facts to the composition.
         facts : str or list
@@ -278,7 +220,7 @@ class Composition:
                             if pat in added_patterns:
                                 patterns.remove(pat)
                         added_patterns.extend(patterns)
-                    self.addPatterns(
+                    self.add_patterns(
                         patterns,
                         pos < 0,
                         distance=minejob.Parameters["maxdist"]
@@ -287,7 +229,7 @@ class Composition:
                     )
 
         for file in minejob.MidiAtoms:
-            self.addFacts(minejob.MidiAtoms[file])
+            self.add_facts(minejob.MidiAtoms[file])
 
     def save_midi(self, path):
         """
@@ -301,3 +243,4 @@ class Composition:
             "".join([f"{s}." for s in self.Current_Model]), quiet=True
         )
         mido_obj.save(path)
+        

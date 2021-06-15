@@ -54,20 +54,3 @@ minejob.remove_note()
 minejob.run_methods([f"{args.ans}"])
 print("finishhed mining process")
 
-# import the mined sequences into the Composer and compose music
-comp.import_minejob(minejob)
-print("finished importing")
-
-err, res, model, ctl_obj = comp.validate(timeout=120)
-print("finished validating")
-
-comp.ground()
-print("finished grounding")
-
-res, model = comp.generate()
-print("finished generating")
-
-comp.save("./model.lp")
-
-if str(res) == "SAT":
-    comp.save_midi("./generated_piece.mid")

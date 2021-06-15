@@ -1,7 +1,10 @@
 from .job import Job
+from pathlib import Path
 
 """All possibly interesting positions of the note atom"""
 ALL_POSITIONS = [3, 4, 5, 6]
+
+ENCODING_BASEPATH = Path(__file__).parent.resolve().joinpath('./encodings')
 
 def quantize(notelength) -> list:
     """

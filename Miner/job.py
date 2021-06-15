@@ -2,6 +2,8 @@ from ASPI import MIDI_to_ASP
 import clingo
 import time
 from Data import Pattern
+from .type import Type
+from typing import Dict, List
 
 class Job:
     """
@@ -49,7 +51,7 @@ class Job:
         return self.__parameters
 
     @property
-    def Strategies(self):
+    def Strategies(self) -> Dict[Type, List[str]]:
         """
         A dict containing all strategies to be used for pattern mining. The key should be the name and the value is a list with all files needed for the strategy.
         The key should be a tuple of the following form: (name : str, pat_type : pattern_types.PatternType)
@@ -206,23 +208,8 @@ class Job:
         self.__positions.remove(3)
 
     def _run_method(
-        self, name, position, clingo_args=[], tout=None, quiet=False, stats=False
+        self, name: Type, position: int, clingo_args:List=[], tout=None, quiet=False, stats=False
     ) -> list:
-        """
-        Executes the stated pattern serach method.
-        Parameters:
-        -----------
-        name : str
-            The name of the strategy to run.
-        position : int
-            The position of the ntoe atom to perfom pattern mining on.
-        clingo_args : list
-            A list which is passed on to clingo containing extra arguments.
-        Returns:
-        --------
-        result : list
-            A list containing found stable models.
-        """
 
         def log(a, b):
             print(f"{a}: {b}")
