@@ -7,7 +7,7 @@ class Item:
         self.value = value
 
     def __eq__(self, o: object) -> bool:
-        if type(o) == Item:
+        if isinstance(o, Item):
             return (
                 self.position == o.position
                 and self.value == o.value
@@ -16,14 +16,14 @@ class Item:
         return False
 
     def __lt__(self, o: object):
-        if type(o) == Item:
+        if isinstance(o, Item):
             if self.position == o.position:
                 return self.sign == "pat"
             return self.position < o.position
         return False
 
     def __gt__(self, o: object):
-        if type(o) == Item:
+        if isinstance(o, Item):
             if self.position == o.position:
                 return self.sign == "neg"
             return self.position > o.position
@@ -34,6 +34,3 @@ class Item:
 
     def __repr__(self) -> str:
         return f"{self.sign}({self.position},{self.value})"
-
-    def to_indexed_item(self, id: int):
-        return f'{self.sign}({id},{self.position},{self.value})'

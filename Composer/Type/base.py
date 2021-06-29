@@ -1,4 +1,5 @@
-from typing import Iterator, Optional, Tuple, Union
+from Miner.type import Type
+from typing import Iterator, List, Optional, Tuple, Union
 import clingo
 import random
 import re
@@ -35,7 +36,7 @@ class CompositionBase(ABC):
         self._additional_rules = []
         self._general_atoms = []
         self._composer_files = (
-            ["./Composer/asp/dummy.lp"] if composer_files is None else composer_files
+            ["./Composer/asp/keys.lp", "./Composer/asp/notes.lp"] if composer_files is None else composer_files
         )
 
         if random_heuristics:
@@ -50,16 +51,14 @@ class CompositionBase(ABC):
                 "--enum-mode=record",
             ]
         else:
-            clingo_args = None
+            clingo_args = []
 
         self._ctl = clingo.Control(clingo_args)
-       # self._ctl.configuration.solve.parallel_mode = (
-       #     parallel_mode if parallel_mode != None else "1,compete"
-       # )
+        self._ctl.configuration.solve.parallel_mode = (
+             parallel_mode if parallel_mode != None else "1,compete"
+         )
         for file in self._composer_files:
-            print(os.path.abspath(file))
-            with open(os.path.abspath(file), 'r') as file:
-                self._ctl.add("base", [], file.read())
+            self._ctl.load(file)
 
         self._rand_heur = random_heuristics
         self._curr_model = []
@@ -158,9 +157,9 @@ class CompositionBase(ABC):
         self._key = other._key
         self._range = other._range
 
-    def add_patterns(self, patterns, intervals, track=0, distance=None):
+    def add_patterns(self, patterns: List, areIntervals: bool, track=0, distance=None):
         for pattern in patterns:
-            body = pattern.to_rule_body(track, intervals, self._seq_distance)
+            body = pattern.to_rule_body(track, areIntervals, self._seq_distance)
             if distance != None:
                 body = self._to_connected(body, distance)
             self._additional_rules.append((body, bool(pattern.type & PatternType.NEGATIVE)))
@@ -207,12 +206,11 @@ class CompositionBase(ABC):
             A finished Job from the Miner packadge.
         """
         added_patterns = []
-        whole = 0
         self._seq_distance = minejob.SequenceLength
+        strat: Type
         for strat in minejob.Results:
             for pos in minejob.Results[strat]:
                 patterns = minejob.Results[strat][pos]
-                whole += len(patterns)
 
                 if patterns:
                     if filter_patterns:
@@ -224,7 +222,7 @@ class CompositionBase(ABC):
                         patterns,
                         pos < 0,
                         distance=minejob.Parameters["maxdist"]
-                        if bool(strat[1] & PatternType.CONNECTED)
+                        if bool(strat.PatternType & PatternType.CONNECTED)
                         else None,
                     )
 

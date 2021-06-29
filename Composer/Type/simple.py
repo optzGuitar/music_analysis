@@ -42,18 +42,8 @@ class Composition(CompositionBase):
                 for i in  self._iterate(handle, timeout):
                     yield i
             else:
-                return self._wait(handle, timeout)
-
-    def _wait(self, handle: SolveHandle, timeout: float) -> Tuple[clingo.SolveResult, Optional[clingo.Model]]:
-        tim = time.time()
-        condition = time.time() - tim < timeout if timeout else True
-        while condition:
-            term = handle.wait(1)
-            condition = time.time() - tim < timeout if timeout else not term
-        if not term:
-            handle.cancel()
-
-        return handle.get(), handle.model()
+                handle.wait(timeout)
+                return handle.get(), handle.model()
 
     def _itarate(self, handle: SolveHandle, timeout: float) -> clingo.Model:
         tim = time.time()

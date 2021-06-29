@@ -150,7 +150,7 @@ def ASP_to_MIDI(input, ticks_per_beat=480, handlers={}, quiet=False) -> mido.Mid
     tracker = ASPNoteTracker(facts, ticks_per_beat, handlers=handlers)
     file = mido.MidiFile(ticks_per_beat=ticks_per_beat)
 
-    tracks = list(tracker.position.keys())
+    tracks = list(tracker.position_per_track.keys())
 
     if not quiet:
         print("Beginning to parse the input")

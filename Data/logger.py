@@ -1,7 +1,8 @@
 import logging
 from pathlib import Path
+import os
 
-LOG_BASEPATH = Path(__file__).joinpath('./logs').resolve()
+LOG_BASEPATH = Path(__file__).parent.joinpath('./logs').resolve()
 
 def make_logger(name: str) -> logging.Logger:
     log_ = logging.getLogger(name)

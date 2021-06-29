@@ -1,27 +1,34 @@
+from Data.pattern import Pattern
 from typing import List, Tuple
 import clingo
 from Miner import ENCODING_BASEPATH
-import time
+from time import time
 from Data.logger import cleanup_log
 from .cleanup_base import CleanupBase
 
-class CircularPatternCleanup(CleanupBase):
-    def _circular_pattern_cleanup(self, timeout=None) -> Tuple[object, List]:
 
+class CircularPatternCleanup(CleanupBase):
+    # TODO: modify so that the result is the difference from all patterns - (not choosen circular)
+    def run(self, timeout=None) -> Tuple[object, List]:
         ctl = clingo.Control()
-        ctl.add('pattern', [], '. '.join(self._patterns))
+        ctl.add('base', [], '\n'.join(self._str_patterns))
         ctl.load(str(ENCODING_BASEPATH.joinpath('./circular_pattern.lp')))
+        time_s = time()
+        ctl.ground([('base', [])])
+        time_e = time()
+        print(f'Grounding took: {time_e - time_s:.3}')
 
         cleanup_log.info("Starting cleanup by removing circular patterns")
-        sat, models, tim, term = self.__solve(ctl, timeout)
-        cleanup_log.info(f"{'Finished' if term else 'Stopped'} after {tim-time.time():.1f}s")
+        time_s = time()
+        sat, models, tim, term = self._solve(ctl, timeout)
+        time_e = time()
+        print(f'Solving took: {time_e - time_s:.3}')
+        cleanup_log.info(
+            f"{'Finished' if term else 'Stopped'} after {tim-time():.1f}s")
         cleanup_log.info(f"Found {len(models)} circular patterns")
 
-        chosen_patterns = []
-        for model in models:
-            chosen_patterns.append(self._elimination_strategy(model))
+        cleaned_patterns = self._get_difference(models)
 
-        return sat, chosen_patterns
-
-    def run(self, timeout=None) -> Tuple[object, List]:
-        return self._circular_pattern_cleanup(timeout)
+        print(
+            f"Got {len(self._patterns)} and finished with {len(cleaned_patterns)}")
+        return sat, cleaned_patterns

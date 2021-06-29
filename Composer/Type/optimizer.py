@@ -79,6 +79,7 @@ class OptimizedComposition(CompositionBase):
 
         self._ctl.configuration.solve.models = 0
         self._ctl.configuration.solve.opt_mode = "opt"
+        print("hahablabla")
 
         def model_handler(model):
             self._curr_model.append(model.symbols(shown=True))

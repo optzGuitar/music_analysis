@@ -1,4 +1,5 @@
-from Composer.Type.base import Composition
+from Cleanup.circular_patterns import CircularPatternCleanup
+from Composer.Type.simple import Composition
 import Miner
 import argparse
 import os
@@ -52,5 +53,11 @@ minejob.convert_pieces()
 minejob.convert_to_intervals()
 minejob.remove_note()
 minejob.run_methods([f"{args.ans}"])
+minejob.cleanup(CircularPatternCleanup, ignore_unsat=True)
 print("finishhed mining process")
 
+comp.import_minejob(minejob)
+comp.ground()
+data = comp.generate(False)
+comp.save_midi('./test_cleanup.mid')
+print("composer finished")

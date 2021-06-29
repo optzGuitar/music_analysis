@@ -1,3 +1,4 @@
+from Data.pattern_type import PatternType
 from typing import List
 from .item import Item
 _orig_pos_to_atom = {
@@ -8,8 +9,8 @@ _orig_pos_to_atom = {
 }
 
 class Pattern:
-    def __init__(self, atoms, type, position) -> None:
-        items = []
+    def __init__(self, atoms: List, type: PatternType, position: int) -> None:
+        items = [] # type: List[Item]
         for atm in atoms:
             if atm.match("support", 1):
                 continue
@@ -26,24 +27,12 @@ class Pattern:
         self.position = position if position > 0 else position * -1
 
     def __eq__(self, o: object) -> bool:
-        if type(o) == Pattern:
-            length = len(self.items)
-            if length != len(o.items):
-                return False
-            if self.position != o.position:
-                return False
-            t = True
-            for itm in range(length):
-                t = True
-                for itm2 in range(length):
-                    index = (itm + itm2) % length
-                    if self.items[index] != o.items[itm2]:
-                        t = False
-                        break
-                if t:
-                    return True
-
+        if isinstance(o, Pattern):
+            return self.__hash__() == o.__hash__()
         return False
+
+    def __hash__(self) -> int:
+        return hash(self.__repr__())
 
     def to_list(self) -> list:
         data = []
@@ -114,6 +103,3 @@ class Pattern:
             data.append(f"P{pos-1}-P0 <= {seq_distance},P{pos-1}-P0>0")
 
         return ",".join(data)
-
-    def to_pattern_with_id(self, id: int) -> List:
-        return [p.to_indexed_item for p in self.items]

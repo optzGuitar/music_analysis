@@ -1,9 +1,11 @@
 from ASPI import MIDI_to_ASP
 import clingo
 import time
-from Data import Pattern
+from Data import Pattern, pattern
 from .type import Type
-from typing import Dict, List
+from typing import Callable, Dict, List, Optional
+from typing import Type as TType
+from Cleanup.cleanup_base import CleanupBase
 
 class Job:
     """
@@ -248,7 +250,7 @@ class Job:
         else:
             with control.solve(
                 on_model=lambda m: result.append(
-                    Pattern(m.symbols(shown=True), name[1], position)
+                    Pattern(m.symbols(shown=True), name.PatternType, position)
                 ),
                 async_=True,
             ) as handle:
@@ -257,7 +259,7 @@ class Job:
                 res = handle.get()
 
         if not quiet:
-            print(f"finished {name[0]:9}. Found {len(result)}")
+            print(f"finished {name.Name:9}. Found {len(result)}")
 
         if stats:
             return (result, control.statistics)
@@ -292,3 +294,20 @@ class Job:
         if stats:
             return (self.Results, stat)
         return self.Results
+
+    def cleanup(self, strategy: TType[CleanupBase], elimination_strategy:Optional[Callable]=None, timeout:Optional[float]=None, ignore_unsat: bool=False):
+        for type, values in self.Results.items():
+            for position in values:
+                if not self.Results[type][position]:
+                    continue
+                strat = strategy(self.Results[type][position], type, position, elimination_strategy)
+                sat, patterns = strat.run(timeout)
+                if len(patterns) == len(self.Results[type][position]):
+                    print('miss')
+                else:
+                    print('hit')
+ 
+                if sat.satisfiable:
+                    self.Results[type][position] = patterns
+                elif not ignore_unsat:
+                    raise RuntimeError("Got UNSAT on cleanup")
