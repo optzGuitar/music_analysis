@@ -5,7 +5,7 @@ from Data import Pattern, pattern
 from .type import Type
 from typing import Callable, Dict, List, Optional
 from typing import Type as TType
-from Cleanup.cleanup_base import CleanupBase
+from Miner.Cleanup.cleanup_base import CleanupBase
 
 class Job:
     """
@@ -302,10 +302,6 @@ class Job:
                     continue
                 strat = strategy(self.Results[type][position], type, position, elimination_strategy)
                 sat, patterns = strat.run(timeout)
-                if len(patterns) == len(self.Results[type][position]):
-                    print('miss')
-                else:
-                    print('hit')
  
                 if sat.satisfiable:
                     self.Results[type][position] = patterns

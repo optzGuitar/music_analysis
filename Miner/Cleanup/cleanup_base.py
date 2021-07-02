@@ -44,7 +44,7 @@ class CleanupBase(ABC):
             if not term:
                 handle.cancel()
         
-            return handle.get(), self._models, tim, term
+            return handle.get(), self._models, term
 
     @abstractmethod
     def run(self, timeout=None) -> List[Pattern]:
