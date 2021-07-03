@@ -135,7 +135,7 @@ class CompositionBase(ABC):
             solve_ctl.add_nogood([(atm, True) for atm in model.symbols(atoms=True)])
 
     @abstractmethod
-    def generate(self, yield_=True, timeout=None) -> Union[Tuple[clingo.SolveResult, Optional[clingo.Model]], Iterator[clingo.Model]]:
+    def generate(self, yield_:bool =True, timeout: Optional[int]=None) -> Union[Tuple[clingo.SolveResult, Optional[clingo.Model]], Iterator[clingo.Model]]:
         raise NotImplementedError("This is the base method. It has to be implemented in all subclasses.")
 
     def save(self, path):
