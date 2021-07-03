@@ -1,4 +1,5 @@
-from Composer.Type.base import Composition
+from Miner.Cleanup.circular_patterns import CircularPatternCleanup
+from Composer.Type.optimizer import OptimizedComposition
 import Miner
 import argparse
 import os
@@ -8,16 +9,18 @@ from Miner.type import Type
 parser = argparse.ArgumentParser()
 parser.add_argument(
     "ans",
-    help="the max number of answer sets for each pattern mining encoding (everything over 5 is currently impossible to ground!)",
-    default=3,
+    help="the max number of answer sets for each pattern mining encoding",
+    default=100,
 )
 args = parser.parse_args()
 
-# (45, 75) means all notes between 50 and 90 can be chosen (MIDI equivalent)
-comp = Composition((45, 75))
+# (45, 75) means all notes between 45 and 75 can be chosen (MIDI equivalent)
+comp = OptimizedComposition((45, 75))
+# the length of the composition
 comp.Time_Max = 16
 
 minejob = Miner.Job(positions=[3, 5, 6])
+
 # parameters defined in the interface.lp
 minejob.Parameters["minneg"] = 1
 minejob.Parameters["maxneg"] = 3
@@ -28,19 +31,10 @@ minejob.Parameters["patlenmax"] = 7
 minejob.Parameters["maxdist"] = 3
 
 # adding the following encodings to be used in pattern mining:
-# minimum rare encoding
-minejob.Strategies[Type("con_min_rare", PatternType.POSITIVE | PatternType.CONNECTED)] = [
-    "./Miner/encodings/connected_candidate.lp",
-    "./Miner/encodings/minimal_rare_pattern.lp",
-]
 # frequent patterns
 minejob.Strategies[Type("frequent", PatternType.POSITIVE)] = ["./Miner/encodings/frequent.lp"]
-# frequent negative patterns
-minejob.Strategies[Type("neg_freq", PatternType.NEGATIVE)] = [
-    "./Miner/encodings/negative_patterns.lp"
-]
 
-# adding my example midi files
+# adding example midi files
 FILEPATH = "./test_examples/simple/"
 for (dirpath, dirnames, filenames) in os.walk(FILEPATH):
     minejob.MusicFiles.extend([os.path.join(FILEPATH, fn) for fn in filenames])
@@ -52,22 +46,30 @@ minejob.convert_pieces()
 minejob.convert_to_intervals()
 minejob.remove_note()
 minejob.run_methods([f"{args.ans}"])
-print("finishhed mining process")
+
+# this step cleans up the mining result
+# sometimes it happens that the same pattern but with a different start is found
+# this step remove those patterns
+# 
+# also if you have anything to remove from the finished mined result do it here
+#minejob.cleanup(CircularPatternCleanup, timeout=60, ignore_unsat=True)
+print("finished mining process")
 
 # import the mined sequences into the Composer and compose music
 comp.import_minejob(minejob)
 print("finished importing")
 
-err, res, model, ctl_obj = comp.validate(timeout=120)
-print("finished validating")
+# this step ensures that the program is satisfiable by eliminating contradictory rules
+comp.validate()
+print('finished validating')
 
 comp.ground()
 print("finished grounding")
 
-res, model = comp.generate()
+res, model = comp.generate(timeout=60)
 print("finished generating")
-
-comp.save("./model.lp")
+print(res)
 
 if str(res) == "SAT":
+    comp.save("./model.lp")
     comp.save_midi("./generated_piece.mid")

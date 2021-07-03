@@ -2,3 +2,6 @@
 test.py
 .DS_Store
 settings.json
+generated_piece.mid
+model.lp
+Data/logs/*

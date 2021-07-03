@@ -29,8 +29,8 @@ class Item:
             return self.position > o.position
         return False
 
-    def __str__(self) -> str:
-        return f'Item({self.position}, {self.value}, sign="{self.sign}")'
-
     def __repr__(self) -> str:
+        return f'Item({self.position}, "{self.value}", sign="{self.sign}")'
+
+    def __str__(self) -> str:
         return f"{self.sign}({self.position},{self.value})"

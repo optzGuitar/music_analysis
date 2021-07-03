@@ -39,28 +39,10 @@ class CompositionBase(ABC):
             ["./Composer/asp/keys.lp", "./Composer/asp/notes.lp"] if composer_files is None else composer_files
         )
 
-        if random_heuristics:
-            # stolen from Flavio Everado :D
-            clingo_args = [
-                "--warn=none",
-                "--sign-def=rnd",
-                "--sign-fix",
-                "--rand-freq=1",
-                "--seed=%s" % random.randint(0, 32767),
-                "--restart-on-model",
-                "--enum-mode=record",
-            ]
-        else:
-            clingo_args = []
-
-        self._ctl = clingo.Control(clingo_args)
-        self._ctl.configuration.solve.parallel_mode = (
-             parallel_mode if parallel_mode != None else "1,compete"
-         )
-        for file in self._composer_files:
-            self._ctl.load(file)
+        self.setup_ctl(parallel_mode, random_heuristics)
 
         self._rand_heur = random_heuristics
+        self._parallel_mode = parallel_mode
         self._curr_model = []
         self._time_max = 16
         self._seq_distance = None
@@ -121,6 +103,28 @@ class CompositionBase(ABC):
     @Key.setter
     def Key(self, value):
         self._key = value
+
+    def setup_ctl(self, parallel_mode: str, random_heuristics: bool):
+        if random_heuristics:
+            # stolen from Flavio Everado :D
+            self._clingo_args = [
+                "--warn=none",
+                "--sign-def=rnd",
+                "--sign-fix",
+                "--rand-freq=1",
+                "--seed=%s" % random.randint(0, 32767),
+                "--restart-on-model",
+                "--enum-mode=record",
+            ]
+        else:
+            self._clingo_args = []
+
+        self._ctl = clingo.Control(self._clingo_args)
+        self._ctl.configuration.solve.parallel_mode = (
+             parallel_mode if parallel_mode != None else "1,compete"
+         )
+        for file in self._composer_files:
+            self._ctl.load(file)
 
     def rules_from_file(self, path):
         self._ctl.load(path)

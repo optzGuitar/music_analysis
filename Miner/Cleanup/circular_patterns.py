@@ -13,12 +13,12 @@ class CircularPatternCleanup(CleanupBase):
         ctl.load(str(ENCODING_BASEPATH.joinpath('./circular_pattern.lp')))
         ctl.ground([('base', [])])
 
-        cleanup_log.info("Starting cleanup by removing circular patterns")
+        cleanup_log.info(f"Starting cleanup of {self._type.Name} by removing circular patterns")
         sat, models, term = self._solve(ctl, timeout)
-        cleanup_log.info(f"Found {len(models)} circular patterns")
+        cleanup_log.info(f"Found {len(models)} circular patterns in {ctl.statistics['summary']['times']['total']:.2f}s")
 
         cleaned_patterns = self._get_difference(models)
 
         cleanup_log.info(
-            f"Got {len(self._patterns)} and finished with {len(cleaned_patterns)}")
+            f"Got {len(self._patterns)} and finished with {len(cleaned_patterns)} patterns")
         return sat, cleaned_patterns

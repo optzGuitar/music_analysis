@@ -1,11 +1,12 @@
 from ASPI import MIDI_to_ASP
 import clingo
 import time
-from Data import Pattern, pattern
+from Data.pattern import Pattern
 from .type import Type
 from typing import Callable, Dict, List, Optional
 from typing import Type as TType
 from Miner.Cleanup.cleanup_base import CleanupBase
+from Data.logger import miner_log
 
 class Job:
     """
@@ -134,6 +135,8 @@ class Job:
                 self.__seq_number_to_file[i] = path
             seq_number += num_tracks
 
+        miner_log.info('Converted all peices into atoms')
+
     def __convert_index(self, atoms, value, length, seq_number=None) -> str:
         """
         Converts note to sequence atoms. Each sequene is length elements long (except the last one!).
@@ -212,16 +215,12 @@ class Job:
     def _run_method(
         self, name: Type, position: int, clingo_args:List=[], tout=None, quiet=False, stats=False
     ) -> list:
-
-        def log(a, b):
-            print(f"{a}: {b}")
-
         result = []
         param_args = []
         for arg in self.Parameters:
             param_args.append("-c")
             param_args.append(f"{arg}={self.Parameters[arg]}")
-        control = clingo.Control(clingo_args + param_args, logger=log)
+        control = clingo.Control(clingo_args + param_args)
         control.add("midi", [], self.__atoms[position])
         control.add("base", [], "#show pat/2.")
         for file in self.Strategies[name]:
@@ -259,14 +258,14 @@ class Job:
                 res = handle.get()
 
         if not quiet:
-            print(f"finished {name.Name:9}. Found {len(result)}")
+            miner_log.info(f"finished {name.Name:9}. Found {len(result)}")
 
         if stats:
             return (result, control.statistics)
         return result
 
     def run_methods(
-        self, clingo_args=[], timeout=None, quiet=False, stats=False
+        self, clingo_args=[], timeout=None, stats=False
     ) -> dict:
         """
         Runs all methods and all positions.
@@ -280,7 +279,7 @@ class Job:
             self.__results[strat] = {}
             for pos in self.__positions:
                 res = self._run_method(
-                    strat, pos, clingo_args, tout=timeout, quiet=quiet, stats=stats
+                    strat, pos, clingo_args, tout=timeout, stats=stats
                 )
                 if stats:
                     self.__results[strat][pos] = res[0]
@@ -288,14 +287,13 @@ class Job:
                 else:
                     self.__results[strat][pos] = res
 
-        if not quiet:
-            print()
-
+        miner_log.info('Finished all mining methods')
         if stats:
             return (self.Results, stat)
         return self.Results
 
     def cleanup(self, strategy: TType[CleanupBase], elimination_strategy:Optional[Callable]=None, timeout:Optional[float]=None, ignore_unsat: bool=False):
+        miner_log.info('starting cleanup')
         for type, values in self.Results.items():
             for position in values:
                 if not self.Results[type][position]:
@@ -307,3 +305,5 @@ class Job:
                     self.Results[type][position] = patterns
                 elif not ignore_unsat:
                     raise RuntimeError("Got UNSAT on cleanup")
+
+        miner_log.info('finished cleanup')
