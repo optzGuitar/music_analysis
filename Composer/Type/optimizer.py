@@ -1,4 +1,6 @@
 import time
+
+import clingo
 from .base import CompositionBase
 
 class OptimizedComposition(CompositionBase):
@@ -79,7 +81,6 @@ class OptimizedComposition(CompositionBase):
 
         self._ctl.configuration.solve.models = 0
         self._ctl.configuration.solve.opt_mode = "opt"
-        print("hahablabla")
 
         def model_handler(model):
             self._curr_model.append(model.symbols(shown=True))
@@ -107,6 +108,7 @@ class OptimizedComposition(CompositionBase):
 
         rule_translate = self.ground(True)
         res, model = self.generate(timeout)
+        self.setup_ctl(self._parallel_mode, self._rand_heur)
 
         if res.satisfiable:
             if remove:

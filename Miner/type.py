@@ -22,4 +22,7 @@ class Type:
             return self.Name == other.Name and self.PatternType == other.PatternType
         
         return False
+
+    def __repr__(self) -> str:
+        return f"Type({self.__name}, {self.__pattern_type})"
         

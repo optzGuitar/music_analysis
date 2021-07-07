@@ -1,5 +1,6 @@
 # This is a system to analyze and compose music using Answer Set Programming
 
+The idea is to find reoccurring patterns inside similar but different musical pieces and exploit these similarities to guide a composition process.
 Instead of using genre-dependent constraints we use the result of our analysis to guide the search for a musical piece.
 Our analysis uses pattern mining to find reoccurring patterns inside the input files. These patterns get translated into rules used by the composer.
 We use MIDI files as input and output format as they are widely available and used.

@@ -11,16 +11,21 @@ _orig_pos_to_atom = {
 class Pattern:
     def __init__(self, atoms: List, type: PatternType, position: int) -> None:
         items = [] # type: List[Item]
-        for atm in atoms:
-            if atm.match("support", 1):
-                continue
-            items.append(
-                Item(
-                    int(str(atm.arguments[0])),
-                    str(atm.arguments[1]),
-                    str(atm).split("(")[0],
+
+        try:
+            for atm in atoms:
+                if atm.match("support", 1):
+                    continue
+                items.append(
+                    Item(
+                        int(str(atm.arguments[0])),
+                        str(atm.arguments[1]),
+                        str(atm).split("(")[0],
+                    )
                 )
-            )
+        except AttributeError:
+            items = atoms
+            
         items.sort()
         self.items = items
         self.type = type
@@ -44,7 +49,7 @@ class Pattern:
         data = []
         for itm in self.items:
             data.append(itm.__repr__())
-        return "P[" + ", ".join(data) + "]"
+        return f"Pattern([{', '.join(data)}], {self.type}, {self.position})"
 
     def to_rule_body(self, track=0, intervals=False, seq_distance=None,) -> str:
         """Converts the current pattern into a rule body used by the composer.

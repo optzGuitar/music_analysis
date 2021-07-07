@@ -31,24 +31,27 @@ class Composition(CompositionBase):
         self._ctl.add("base", [], "".join(rules))
         self._ctl.ground([("base", [])])
 
-    def generate(self, yield_=True, timeout=None) -> Union[Tuple[clingo.SolveResult, Optional[clingo.Model]], Iterator[clingo.Model]]:
+    def generate(self, yield_=True, timeout=None) -> Union[Iterator[Tuple[clingo.SolveResult, Optional[clingo.Model]]], Iterator[clingo.Model]]:
         """
         Generates a new musical piece.
         """
-        solve_control = clingo.SolveControl()
+        solve_control = clingo.SolveControl(self._ctl)
 
         with self._ctl.solve(async_=True, on_model=lambda model: self._model_handler(yield_, model, solve_control)) as handle:
             if yield_:
                 for i in  self._iterate(handle, timeout):
                     yield i
             else:
-                handle.wait(timeout)
-                return handle.get(), handle.model()
+                res = handle.wait(timeout)
+                if not res:
+                    handle.cancel()
+                yield (handle.get(), self._curr_model)
 
-    def _itarate(self, handle: SolveHandle, timeout: float) -> clingo.Model:
+    def _iterate(self, handle: SolveHandle, timeout: float) -> clingo.Model:
         tim = time.time()
         condition = time.time() - tim < timeout if timeout else True
         offset = 0
+        print('iterate')
         while condition:
             term = handle.wait(1)
             offset += time.time() - tim
