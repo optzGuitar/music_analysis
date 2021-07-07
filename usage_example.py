@@ -4,7 +4,8 @@ import Miner
 import argparse
 import os
 from Data.pattern_type import PatternType
-from Miner.type import Type
+from Miner.strategy import Strategy
+from Miner.encodings import FREQUENT
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -32,7 +33,7 @@ minejob.Parameters["maxdist"] = 3
 
 # adding the following encodings to be used in pattern mining:
 # frequent patterns
-minejob.Strategies[Type("frequent", PatternType.POSITIVE)] = ["./Miner/encodings/frequent.lp"]
+minejob.Strategies[Strategy("frequent", PatternType.POSITIVE)] = FREQUENT
 
 # adding example midi files
 FILEPATH = "./test_examples/simple/"

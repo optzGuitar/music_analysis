@@ -1,11 +1,11 @@
+from .strategy import Strategy
 from ASPI import MIDI_to_ASP
 import clingo
 import time
 from Data.pattern import Pattern
-from .type import Type
 from typing import Callable, Dict, List, Optional
 from typing import Type as TType
-from Miner.Cleanup.cleanup_base import CleanupBase
+from .Cleanup.cleanup_base import CleanupBase
 from Data.logger import miner_log
 
 class Job:
@@ -37,10 +37,10 @@ class Job:
             },
             **additional_params,
         }
-        self.__atoms = {}
+        self.__atoms = {} # type Dict[int, str]
         self.__midi_atoms = {}
-        self.__strategies = {}
-        self.__results = {}
+        self.__strategies = [] # type: List[Strategy]
+        self.__results = {} # type: Dict[Strategy, List[Pattern]]
         self.__seqlen = seqlen
         self.__positions = positions
         self.__music_files = []
@@ -54,7 +54,7 @@ class Job:
         return self.__parameters
 
     @property
-    def Strategies(self) -> Dict[Type, List[str]]:
+    def Strategies(self) -> List[Strategy]:
         """
         A dict containing all strategies to be used for pattern mining. The key should be the name and the value is a list with all files needed for the strategy.
         The key should be a tuple of the following form: (name : str, pat_type : pattern_types.PatternType)
@@ -104,8 +104,8 @@ class Job:
         Parameters
         ----------
         options : dict
-                In this dict one can specifiy special parameters for the MIDI_to_ASP function. The standard is {quiet:True}.
-                The keys of the dict are the paths for which one wants the options to be loaded. Each entry should be a list wich gets unpacked while calling MIDI_to_ASP.
+                In this dict one can specify special parameters for the MIDI_to_ASP function. The standard is {quiet:True}.
+                The keys of the dict are the paths for which one wants the options to be loaded. Each entry should be a list which gets unpacked while calling MIDI_to_ASP.
                 The path to the MIDI file cannot be input here (Add it to the MusicFiles list!).
         """
         for pos in self.__positions:
@@ -139,7 +139,7 @@ class Job:
 
     def __convert_index(self, atoms, value, length, seq_number=None) -> str:
         """
-        Converts note to sequence atoms. Each sequene is length elements long (except the last one!).
+        Converts note to sequence atoms. Each sequence is length elements long (except the last one!).
         Parameters:
         -----------
         atoms : list
@@ -213,7 +213,7 @@ class Job:
         self.__positions.remove(3)
 
     def _run_method(
-        self, name: Type, position: int, clingo_args:List=[], tout=None, quiet=False, stats=False
+        self, strat: Strategy, position: int, clingo_args:List=[], tout=None, quiet=False, stats=False
     ) -> list:
         result = []
         param_args = []
@@ -223,13 +223,10 @@ class Job:
         control = clingo.Control(clingo_args + param_args)
         control.add("midi", [], self.__atoms[position])
         control.add("base", [], "#show pat/2.")
-        for file in self.Strategies[name]:
-            control.load(file)
+        control.load(strat.FilePath)
         control.ground([("base", []), ("midi", [])])
-        isint = False
         try:
             int(clingo_args[0])
-            isint = True
         except:
             pass
         if int(clingo_args[0]) == 0:
@@ -249,7 +246,7 @@ class Job:
         else:
             with control.solve(
                 on_model=lambda m: result.append(
-                    Pattern(m.symbols(shown=True), name.PatternType, position)
+                    Pattern(m.symbols(shown=True), strat.PatternType, position)
                 ),
                 async_=True,
             ) as handle:
@@ -258,7 +255,7 @@ class Job:
                 res = handle.get()
 
         if not quiet:
-            miner_log.info(f"finished {name.Name:9}. Found {len(result)}")
+            miner_log.info(f"finished {strat.Name:9}. Found {len(result)}")
 
         if stats:
             return (result, control.statistics)

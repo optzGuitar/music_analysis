@@ -3,7 +3,7 @@ import clingo
 from Data.pattern_type import PatternType
 from collections import defaultdict
 from typing import Dict, List, Tuple
-from Miner.type import Type
+from Miner.strategy import Strategy
 from Data.pattern import Pattern
 import time
 from abc import ABC, abstractmethod

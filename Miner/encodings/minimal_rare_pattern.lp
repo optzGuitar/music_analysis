@@ -1,5 +1,3 @@
-#include "rare_pattern.lp".
-
 suppat(U) :- U=1..L, patlen(L), L>1.
 
 spocc(S,1,2,P)     :- seq(S,P,I), pat(2,I), not support(S).

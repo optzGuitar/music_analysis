@@ -2,14 +2,15 @@ from Data.item import Item
 from Data.pattern import Pattern
 from Miner.job import Job
 from Miner.Cleanup.circular_patterns import CircularPatternCleanup
-from Miner.type import Type
+from Miner.strategy import Strategy
 from Data.pattern_type import PatternType
 import os
 from deepdiff import DeepDiff
+from Miner.strategy import 
 
 
 mining_result = {
-    Type('con_min_rare', PatternType.CONNECTED | PatternType.POSITIVE): {
+    Strategy('con_min_rare', PatternType.CONNECTED | PatternType.POSITIVE): {
         5: [],
         6: [],
         -3: [
@@ -83,7 +84,7 @@ mining_result = {
             ),
         ],
     },
-    Type('frequent', PatternType.POSITIVE): {
+    Strategy('frequent', PatternType.POSITIVE): {
         5: [
             Pattern(
                 [Item(1, "(1,4)", sign="pat"), Item(2, "(1,2)", sign="pat")],
@@ -382,7 +383,7 @@ mining_result = {
             ),
         ],
     },
-    Type('neg_freq', PatternType.NEGATIVE): {
+    Strategy('neg_freq', PatternType.NEGATIVE): {
         5: [
             Pattern(
                 [Item(1, "(1,2)", sign="pat"), Item(1, "(1,4)", sign="neg")],
@@ -669,16 +670,17 @@ def test_basic_mining_and_cleanup():
     minejob.Parameters["patlenmax"] = 7
     minejob.Parameters["maxdist"] = 3
 
+    #TODO: cleanup refactor; change FilePath to FilePaths in Strategy; finish incremental solving; write test
     minejob.Strategies[
-        Type("con_min_rare", PatternType.POSITIVE | PatternType.CONNECTED)
+        Strategy("con_min_rare", PatternType.POSITIVE | PatternType.CONNECTED)
     ] = [
         "./Miner/encodings/connected_candidate.lp",
         "./Miner/encodings/minimal_rare_pattern.lp",
     ]
-    minejob.Strategies[Type("frequent", PatternType.POSITIVE)] = [
+    minejob.Strategies[Strategy("frequent", PatternType.POSITIVE)] = [
         "./Miner/encodings/frequent.lp"
     ]
-    minejob.Strategies[Type("neg_freq", PatternType.NEGATIVE)] = [
+    minejob.Strategies[Strategy("neg_freq", PatternType.NEGATIVE)] = [
         "./Miner/encodings/negative_patterns.lp"
     ]
 

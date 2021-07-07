@@ -18,14 +18,12 @@ class Composition(CompositionBase):
         self._general_atoms.append(f"range({self._range[0]}..{self._range[1]}).")
 
         rules = []
-        pos_rules = 0
-        for body, type in self._additional_rules:
+        for i, (body, type) in enumerate(self._additional_rules):
             if type:
                 rules.append(f":- {body}.")
             else:
-                rules.append(f"z{pos_rules} :- {body}.")
-                rules.append(f":- not z{pos_rules}.")
-                pos_rules += 1
+                rules.append(f"z{i} :- {body}.")
+                rules.append(f":- not z{i}.")
 
         self._ctl.add("base", [], "".join(self._general_atoms))
         self._ctl.add("base", [], "".join(rules))

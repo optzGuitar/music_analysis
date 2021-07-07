@@ -1,4 +1,4 @@
-from Miner.type import Type
+from Miner.strategy import Strategy
 from typing import Iterator, List, Optional, Tuple, Union
 import clingo
 import random
@@ -187,7 +187,7 @@ class CompositionBase(ABC):
         facts : str or list
             The facts to be added.
         """
-        if type(facts) == str:
+        if isinstance(facts, str):
             facts = facts.split(".")[:-1]
             facts = [f.strip() + "." for f in facts]
         for fact in facts:
@@ -199,7 +199,7 @@ class CompositionBase(ABC):
                 fact = "trackp" + fact[5:]
             self._general_atoms.append(fact)
 
-    def import_minejob(self, minejob, filter_patterns=False):
+    def import_minejob(self, minejob):
         """
         Easy and convnient way to import a finished job from the Miner packadge.
         Negative Patterns get recognised by "neg" in strategy.
@@ -209,24 +209,18 @@ class CompositionBase(ABC):
         minejob : Job
             A finished Job from the Miner packadge.
         """
-        added_patterns = []
         self._seq_distance = minejob.SequenceLength
-        strat: Type
-        for strat in minejob.Results:
-            for pos in minejob.Results[strat]:
-                patterns = minejob.Results[strat][pos]
+        strategy: Strategy
+        for strategy in minejob.Results:
+            for pos in minejob.Results[strategy]:
+                patterns = minejob.Results[strategy][pos]
 
                 if patterns:
-                    if filter_patterns:
-                        for pat in patterns:
-                            if pat in added_patterns:
-                                patterns.remove(pat)
-                        added_patterns.extend(patterns)
                     self.add_patterns(
                         patterns,
                         pos < 0,
                         distance=minejob.Parameters["maxdist"]
-                        if bool(strat.PatternType & PatternType.CONNECTED)
+                        if bool(strategy.PatternType & PatternType.CONNECTED)
                         else None,
                     )
 
