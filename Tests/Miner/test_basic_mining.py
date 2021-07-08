@@ -2,15 +2,14 @@ from Data.item import Item
 from Data.pattern import Pattern
 from Miner.job import Job
 from Miner.Cleanup.circular_patterns import CircularPatternCleanup
-from Miner.strategy import Strategy
+from Miner.strategy import STRATEGY_FREQUENT, STRATEGY_NEGATIVE, STRATEGY_CONNECTED_MINIMAL_RARE, Strategy
 from Data.pattern_type import PatternType
 import os
 from deepdiff import DeepDiff
-from Miner.strategy import 
 
 
 mining_result = {
-    Strategy('con_min_rare', PatternType.CONNECTED | PatternType.POSITIVE): {
+    STRATEGY_CONNECTED_MINIMAL_RARE: {
         5: [],
         6: [],
         -3: [
@@ -84,7 +83,7 @@ mining_result = {
             ),
         ],
     },
-    Strategy('frequent', PatternType.POSITIVE): {
+    STRATEGY_FREQUENT: {
         5: [
             Pattern(
                 [Item(1, "(1,4)", sign="pat"), Item(2, "(1,2)", sign="pat")],
@@ -383,7 +382,7 @@ mining_result = {
             ),
         ],
     },
-    Strategy('neg_freq', PatternType.NEGATIVE): {
+    STRATEGY_NEGATIVE: {
         5: [
             Pattern(
                 [Item(1, "(1,2)", sign="pat"), Item(1, "(1,4)", sign="neg")],
@@ -670,22 +669,12 @@ def test_basic_mining_and_cleanup():
     minejob.Parameters["patlenmax"] = 7
     minejob.Parameters["maxdist"] = 3
 
-    #TODO: cleanup refactor; change FilePath to FilePaths in Strategy; finish incremental solving; write test
-    minejob.Strategies[
-        Strategy("con_min_rare", PatternType.POSITIVE | PatternType.CONNECTED)
-    ] = [
-        "./Miner/encodings/connected_candidate.lp",
-        "./Miner/encodings/minimal_rare_pattern.lp",
-    ]
-    minejob.Strategies[Strategy("frequent", PatternType.POSITIVE)] = [
-        "./Miner/encodings/frequent.lp"
-    ]
-    minejob.Strategies[Strategy("neg_freq", PatternType.NEGATIVE)] = [
-        "./Miner/encodings/negative_patterns.lp"
-    ]
+    minejob.Strategies.append(STRATEGY_CONNECTED_MINIMAL_RARE)
+    minejob.Strategies.append(STRATEGY_FREQUENT)
+    minejob.Strategies.append(STRATEGY_NEGATIVE)
 
     FILEPATH = "./test_examples/simple/"
-    for (dirpath, dirnames, filenames) in os.walk(FILEPATH):
+    for (_, _, filenames) in os.walk(FILEPATH):
         minejob.MusicFiles.extend([os.path.join(FILEPATH, fn) for fn in filenames])
         break
 

@@ -223,7 +223,8 @@ class Job:
         control = clingo.Control(clingo_args + param_args)
         control.add("midi", [], self.__atoms[position])
         control.add("base", [], "#show pat/2.")
-        control.load(strat.FilePath)
+        for file in strat.FilePaths:
+            control.load(file)
         control.ground([("base", []), ("midi", [])])
         try:
             int(clingo_args[0])
