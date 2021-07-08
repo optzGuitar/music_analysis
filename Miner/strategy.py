@@ -5,7 +5,7 @@ from .encodings import FREQUENT, MINIMAL_RARE, NEGATIVE_CONNECTED, NEGATIVE, RAR
 
 
 class Strategy:
-    def __init__(self, name: str, pattern_type: PatternType, file_paths: List[Union[pathlib.Path, str]]):
+    def __init__(self, name: str, pattern_type: PatternType, file_paths: List[str]):
         self.__name = name
         self.__pattern_type = pattern_type
         self.__file_paths = file_paths
@@ -35,9 +35,9 @@ class Strategy:
         return f"Strategy({self.__name}, {self.__pattern_type}, {self.__file_paths})"
 
 STRATEGY_FREQUENT = Strategy('frequent', PatternType.POSITIVE, [FREQUENT])
-STRATEGY_MINIMAL_RARE = Strategy('minimum_rare', PatternType.POSITIVE, [MINIMAL_RARE, CANDIDATE])
+STRATEGY_MINIMAL_RARE = Strategy('minimum_rare', PatternType.POSITIVE, [RARE, MINIMAL_RARE, CANDIDATE])
 STRATEGY_NEGATIVE_CONNECTED = Strategy('negative_connected', PatternType.NEGATIVE | PatternType.CONNECTED, [NEGATIVE_CONNECTED])
 STRATEGY_NEGATIVE = Strategy('negative', PatternType.NEGATIVE, [NEGATIVE])
 STRATEGY_RARE = Strategy('rare', PatternType.POSITIVE, [CANDIDATE, RARE])
-STRATEGY_CONNECTED_MINIMAL_RARE = Strategy('connected_minimum_rare', PatternType.CONNECTED | PatternType.POSITIVE, [CONNECTED_CANDIDATE, MINIMAL_RARE])
+STRATEGY_CONNECTED_MINIMAL_RARE = Strategy('connected_minimum_rare', PatternType.CONNECTED | PatternType.POSITIVE, [CONNECTED_CANDIDATE, MINIMAL_RARE, RARE])
 STRATEGY_CONNECTED_RARE = Strategy('connected_rare', PatternType.CONNECTED | PatternType.POSITIVE, [CONNECTED_CANDIDATE, RARE])

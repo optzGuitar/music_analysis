@@ -6,7 +6,6 @@ from .cleanup_base import CleanupBase
 
 
 class CircularPatternCleanup(CleanupBase):
-    # TODO: modify so that the result is the difference from all patterns - (not choosen circular)
     def run(self, timeout=None) -> Tuple[object, List]:
         ctl = clingo.Control(['0'])
         ctl.add('base', [], '\n'.join(self._str_patterns))

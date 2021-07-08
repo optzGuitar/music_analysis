@@ -1,13 +1,11 @@
+from typing import List
 from Data.pattern import Pattern
-from Miner.strategy import Strategy
 from Data.pattern_type import PatternType
-from typing import List, Optional, Tuple
-import clingo
-from Composer.Type.base import CompositionBase
+from .simple import Composition
 from collections import defaultdict
 
 
-class Incremental(CompositionBase):
+class Incremental(Composition):
     def __init__(self, range, random_heuristics, composer_files, parallel_mode, key):
         super().__init__(
             range,
@@ -19,11 +17,6 @@ class Incremental(CompositionBase):
         self._pattern_per_length = defaultdict(list)
         self._grounded_length = 0
         self._grounded_rules = 0
-
-    def generate(
-        self, yield_: bool, timeout: Optional[int]
-    ) -> Tuple[clingo.SolveResult, Optional[clingo.Model]]:
-        pass
 
     def ground(self, from_timestep: int, to_timestep: int):
         """Grounds the composition."""
