@@ -43,7 +43,6 @@ class Job:
         self.__atoms = {}  # type Dict[int, str]
         self.__midi_atoms = {}
         self.__strategies = []  # type: List[Strategy]
-        # TODO: refactor output format; since the pattern already contains its position I dont longer need to return a dict
         self.__results = {}  # type: Dict[Strategy, Dict[int, List[Pattern]]]
         self.__seqlen = seqlen
         self.__positions = positions

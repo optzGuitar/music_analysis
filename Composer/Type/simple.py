@@ -33,28 +33,8 @@ class Composition(CompositionBase):
         """
         Generates a new musical piece.
         """
-        #TODO: figure out how to resume a search and get a different model (how SolveControl works)
         with self._ctl.solve(async_=True, on_model=lambda model: self._model_handler(model)) as handle:
             res = handle.wait(timeout)
             if not res:
                 handle.cancel()
             return (handle.get(), self._curr_model)
-
-    def _iterate(self, handle: SolveHandle, timeout: float) -> clingo.Model:
-        # TODO: remove
-        tim = time.time()
-        condition = time.time() - tim < timeout if timeout else True
-        offset = 0
-        print('iterate')
-        while condition:
-            term = handle.wait(1)
-            offset += time.time() - tim
-            model = handle.model()
-            if model is not None:
-                yield model
-            offset -= time.time() - tim - offset
-            condition = time.time() - tim - offset < timeout if timeout else not term
-        if not term:
-            handle.cancel()
-
-        return handle.get(), self._curr_model
