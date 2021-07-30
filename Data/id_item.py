@@ -1,7 +1,8 @@
+from Data.sign_enumeration import SignEnumeration
 from .item import Item
 
 class IdItem(Item):
-    def __init__(self, id: int, pos: int, value, sign: str) -> None:
+    def __init__(self, id: int, pos: int, value, sign: SignEnumeration) -> None:
         super().__init__(pos, value, sign=sign)
         self.id = id
 
@@ -19,7 +20,9 @@ class IdItem(Item):
         return f'IdItem({self.id}, {self.position}, {self.value}, sign="{self.sign}")'
 
     def __repr__(self) -> str:
-        return f"{self.sign}({self.id},{self.position},{self.value})"
+        if isinstance(self.sign.value, str):
+            print()
+        return f"{self.sign.value}({self.id},{self.position},{self.value})"
 
     def to_atom(self):
-        return f"{self.sign}({self.id},{self.position},{self.value})."
+        return f"{self.sign.value}({self.id},{self.position},{self.value})."

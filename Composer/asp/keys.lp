@@ -78,7 +78,7 @@ keysteps((B, M), (S-MO-BO+24)\12) :- base(B, BO),
 
 % selects the notes which are in key K
 inkey(12-S, (R, K)) :- range(12-S),
-    keys(_,_,_,(R, K)), keysteps(K, S), 12-S < R, S != 12.
+    keys(_,_,(R, K)), keysteps(K, S), 12-S < R, S != 12.
 inkey(N, (R, K)) :- range(N),
-    keys(_,_,_,(R, K)), keysteps(K, ((N-(R\12))\12)).
+    keys(_,_,(R, K)), keysteps(K, ((N-(R\12))\12)).
 

@@ -1,8 +1,11 @@
+from Data.sign_enumeration import SignEnumeration
+
+
 class Item:
-    def __init__(self, pos, value, sign="pat") -> None:
+    def __init__(
+        self, pos: int, value, sign: SignEnumeration = SignEnumeration.POS
+    ) -> None:
         self.position = pos
-        if sign != "pat" and sign != "neg":
-            raise AttributeError(f"Sign needs to be either pos or neg (was {sign})")
         self.sign = sign
         self.value = value
 
@@ -18,19 +21,19 @@ class Item:
     def __lt__(self, o: object):
         if isinstance(o, Item):
             if self.position == o.position:
-                return self.sign == "pat"
+                return self.sign == SignEnumeration.POS
             return self.position < o.position
         return False
 
     def __gt__(self, o: object):
         if isinstance(o, Item):
             if self.position == o.position:
-                return self.sign == "neg"
+                return self.sign == SignEnumeration.NEG
             return self.position > o.position
         return False
 
     def __repr__(self) -> str:
-        return f'Item({self.position}, "{self.value}", sign="{self.sign}")'
+        return f'Item({self.position}, "{self.value}", sign={self.sign})'
 
     def __str__(self) -> str:
-        return f"{self.sign}({self.position},{self.value})"
+        return f"{self.sign.value}({self.position},{self.value})"

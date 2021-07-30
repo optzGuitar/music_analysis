@@ -14,7 +14,7 @@ class Composition(CompositionBase):
 
         self._general_atoms.append(f"positions(0..{self.Time_Max}).")
         self._general_atoms.append(f"track(0).")
-        self._general_atoms.append(f"keys(0,0,{self.Time_Max},{self._key}).")
+        self._general_atoms.append(f"keys(0,0..{self.Time_Max},{self._key}).")
         self._general_atoms.append(f"range({self._range[0]}..{self._range[1]}).")
 
         rules = []
@@ -29,23 +29,19 @@ class Composition(CompositionBase):
         self._ctl.add("base", [], "".join(rules))
         self._ctl.ground([("base", [])])
 
-    def generate(self, yield_=True, timeout=None) -> Union[Iterator[Tuple[clingo.SolveResult, Optional[clingo.Model]]], Iterator[clingo.Model]]:
+    def generate(self, timeout=None) -> Tuple[clingo.SolveResult, Optional[clingo.Model]]:
         """
         Generates a new musical piece.
         """
-        solve_control = clingo.SolveControl(self._ctl)
-
-        with self._ctl.solve(async_=True, on_model=lambda model: self._model_handler(yield_, model, solve_control)) as handle:
-            if yield_:
-                for i in  self._iterate(handle, timeout):
-                    yield i
-            else:
-                res = handle.wait(timeout)
-                if not res:
-                    handle.cancel()
-                yield (handle.get(), self._curr_model)
+        #TODO: figure out how to resume a search and get a different model (how SolveControl works)
+        with self._ctl.solve(async_=True, on_model=lambda model: self._model_handler(model)) as handle:
+            res = handle.wait(timeout)
+            if not res:
+                handle.cancel()
+            return (handle.get(), self._curr_model)
 
     def _iterate(self, handle: SolveHandle, timeout: float) -> clingo.Model:
+        # TODO: remove
         tim = time.time()
         condition = time.time() - tim < timeout if timeout else True
         offset = 0

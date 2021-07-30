@@ -22,10 +22,10 @@ def MIDI_to_ASP(
     quiet=False,
 ) -> str:
     """
-    This function converts a MIDI file into an ASP encoding. This is done using the mido packadge.
+    This function converts a MIDI file into an ASP encoding. This is done using the mido package.
     Parameters
     ----------
-    imput : string or mido.MidiFile
+    input : string or mido.MidiFile
             The filename of the MIDI file to convert
     tracks : list, int, optional
             The track(s) of the MIDI file to process.
@@ -34,7 +34,7 @@ def MIDI_to_ASP(
             The functions should all follow the following signature:
                 func(mido.Message: event, ASPI.MidiNoteTracker: tracker) -> str or none
                 The return string is the ASP atom of the message
-            The following mesages are naturaly supported:
+            The following mesages are naturally supported:
                 note_on, note_off, program_change, time_signature, key_signature
     snap_points : list
             A list containing percentage values between and including 0 and 1. The standard snap distance is a 16th note e.g. [0, 0.25, 0.5, 0.75, 1].

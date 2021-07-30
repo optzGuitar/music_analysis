@@ -1,3 +1,5 @@
+from clingo.symbol import Function
+from Data.pattern_type import PatternType
 from .strategy import Strategy
 from ASPI import MIDI_to_ASP
 import clingo
@@ -7,6 +9,7 @@ from typing import Callable, Dict, List, Optional
 from typing import Type as TType
 from .Cleanup.cleanup_base import CleanupBase
 from Data.logger import miner_log
+
 
 class Job:
     """
@@ -37,10 +40,11 @@ class Job:
             },
             **additional_params,
         }
-        self.__atoms = {} # type Dict[int, str]
+        self.__atoms = {}  # type Dict[int, str]
         self.__midi_atoms = {}
-        self.__strategies = [] # type: List[Strategy]
-        self.__results = {} # type: Dict[Strategy, List[Pattern]]
+        self.__strategies = []  # type: List[Strategy]
+        # TODO: refactor output format; since the pattern already contains its position I dont longer need to return a dict
+        self.__results = {}  # type: Dict[Strategy, Dict[int, List[Pattern]]]
         self.__seqlen = seqlen
         self.__positions = positions
         self.__music_files = []
@@ -135,7 +139,7 @@ class Job:
                 self.__seq_number_to_file[i] = path
             seq_number += num_tracks
 
-        miner_log.info('Converted all peices into atoms')
+        miner_log.info("Converted all peices into atoms")
 
     def __convert_index(self, atoms, value, length, seq_number=None) -> str:
         """
@@ -212,8 +216,35 @@ class Job:
         self.__atoms.pop(3)
         self.__positions.remove(3)
 
+    def _model_handler(
+        self,
+        result_list: List[Pattern],
+        intervals: bool,
+        pattern_type: PatternType,
+        position: int,
+        distance: Optional[int],
+    ) -> Function:
+        def inner(model: clingo.Model):
+            result_list.append(
+                Pattern(
+                    model.symbols(shown=True),
+                    pattern_type,
+                    position,
+                    intervals,
+                    distance,
+                )
+            )
+
+        return inner
+
     def _run_method(
-        self, strat: Strategy, position: int, clingo_args:List=[], tout=None, quiet=False, stats=False
+        self,
+        strat: Strategy,
+        position: int,
+        clingo_args: List = [],
+        tout=None,
+        quiet=False,
+        stats=False,
     ) -> list:
         result = []
         param_args = []
@@ -223,16 +254,21 @@ class Job:
         control = clingo.Control(clingo_args + param_args)
         control.add("midi", [], self.__atoms[position])
         control.add("base", [], "#show pat/2.")
+
         for file in strat.FilePaths:
             control.load(file)
         control.ground([("base", []), ("midi", [])])
-        try:
-            int(clingo_args[0])
-        except:
-            pass
+
+        distance = None
+        if strat.PatternType & PatternType.CONNECTED:
+            distance = self.Parameters["maxdist"]
+
         if int(clingo_args[0]) == 0:
             with control.solve(
-                on_model=lambda m: result.append(m.symbols(shown=True)), async_=True
+                on_model=self._model_handler(
+                    result, position < 0, strat.PatternType, position, distance
+                ),
+                async_=True,
             ) as handle:
                 while tout > 0:
                     time.sleep(5)
@@ -246,8 +282,8 @@ class Job:
                 res = handle.get()
         else:
             with control.solve(
-                on_model=lambda m: result.append(
-                    Pattern(m.symbols(shown=True), strat.PatternType, position)
+                on_model=self._model_handler(
+                    result, position < 0, strat.PatternType, position, distance
                 ),
                 async_=True,
             ) as handle:
@@ -262,9 +298,7 @@ class Job:
             return (result, control.statistics)
         return result
 
-    def run_methods(
-        self, clingo_args=[], timeout=None, stats=False
-    ) -> dict:
+    def run_methods(self, clingo_args=[], timeout=None, stats=False) -> dict:
         """
         Runs all methods and all positions.
         Parameters:
@@ -285,23 +319,32 @@ class Job:
                 else:
                     self.__results[strat][pos] = res
 
-        miner_log.info('Finished all mining methods')
+        miner_log.info("Finished all mining methods")
         if stats:
             return (self.Results, stat)
         return self.Results
 
-    def cleanup(self, strategy: TType[CleanupBase], elimination_strategy:Optional[Callable]=None, timeout:Optional[float]=None, ignore_unsat: bool=False):
-        miner_log.info('starting cleanup')
+    def cleanup(
+        self,
+        strategy: TType[CleanupBase],
+        elimination_strategy: Optional[Callable] = None,
+        timeout: Optional[float] = None,
+        ignore_unsat: bool = False,
+    ):
+        miner_log.info("starting cleanup")
         for type, values in self.Results.items():
             for position in values:
                 if not self.Results[type][position]:
                     continue
-                strat = strategy(self.Results[type][position], type, position, elimination_strategy)
+                strat = strategy(
+                    self.Results[type][position], type, position, elimination_strategy
+                )
                 sat, patterns = strat.run(timeout)
- 
+
                 if sat.satisfiable:
                     self.Results[type][position] = patterns
                 elif not ignore_unsat:
                     raise RuntimeError("Got UNSAT on cleanup")
 
-        miner_log.info('finished cleanup')
+        miner_log.info("finished cleanup")
+

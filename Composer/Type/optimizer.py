@@ -40,7 +40,7 @@ class OptimizedComposition(CompositionBase):
     def ground(self, error_head=False):
         self._general_atoms.append(f"positions(0..{self.Time_Max}).")
         self._general_atoms.append(f"track(0).")
-        self._general_atoms.append(f"keys(0,0,{self.Time_Max},{self._key}).")
+        self._general_atoms.append(f"keys(0,0..{self.Time_Max},{self._key}).")
         self._general_atoms.append(f"range({self._range[0]}..{self._range[1]}).")
 
         rules = []

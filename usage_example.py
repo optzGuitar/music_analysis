@@ -1,11 +1,10 @@
-from Miner.Cleanup.circular_patterns import CircularPatternCleanup
-from Composer.Type.optimizer import OptimizedComposition
-import Miner
 import argparse
 import os
-from Data.pattern_type import PatternType
-from Miner.strategy import STRATEGY_FREQUENT, Strategy
-from Miner.encodings import FREQUENT
+
+import Miner
+from Composer.Type.optimizer import OptimizedComposition
+from Miner.Cleanup.circular_patterns import CircularPatternCleanup
+from Miner.strategy import STRATEGY_FREQUENT
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -51,7 +50,7 @@ minejob.run_methods([f"{args.ans}"])
 # this step cleans up the mining result
 # sometimes it happens that the same pattern but with a different start is found
 # this step remove those patterns
-# 
+#
 # also if you have anything to remove from the mined patterns do it here
 minejob.cleanup(CircularPatternCleanup, timeout=60, ignore_unsat=True)
 print("finished mining process")

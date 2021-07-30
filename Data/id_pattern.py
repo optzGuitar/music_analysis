@@ -1,4 +1,5 @@
 from __future__ import annotations
+from Data.sign_enumeration import SignEnumeration
 from Data.id_item import IdItem
 import clingo
 from Data.pattern_type import PatternType
@@ -17,7 +18,7 @@ class IdPattern(Pattern):
                     int(str(atm.arguments[0])),
                     int(str(atm.arguments[1])),
                     str(atm.arguments[2]),
-                    str(atm).split("(")[0],
+                    SignEnumeration(str(atm).split("(")[0]),
                 )
             )
         items.sort()

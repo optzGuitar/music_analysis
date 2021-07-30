@@ -1,3 +1,5 @@
+from Data.pattern import Pattern
+from Miner.job import Job
 from Miner.strategy import Strategy
 from typing import Iterator, List, Optional, Tuple, Union
 import clingo
@@ -9,6 +11,7 @@ from Data.pattern_type import PatternType
 import os.path
 from abc import ABC, abstractmethod
 
+
 class CompositionBase(ABC):
     """
     This is the main class for controling the composition process.
@@ -16,11 +19,11 @@ class CompositionBase(ABC):
 
     def __init__(
         self,
-        range,
-        random_heuristics=False,
-        composer_files=None,
-        parallel_mode=None,  # x,{split;compete}
-        key="(0,(major,ionian))",
+        range: Tuple[int, int],
+        random_heuristics: bool = False,
+        composer_files: Optional[List[str]] = None,
+        parallel_mode: Optional[str] = None,  # x,{split;compete}
+        key: str = "(0,(major,ionian))",
     ):
         """
         Creates a new composition.
@@ -33,19 +36,21 @@ class CompositionBase(ABC):
         composer_files : list or None
             If None the default composer files will be loaded. Otherwise the files in the list will be loaded.
         """
-        self._additional_rules = []
-        self._general_atoms = []
+        self._additional_rules: List[Tuple[str, bool]] = []
+        self._general_atoms: List[str] = []
         self._composer_files = (
-            ["./Composer/asp/keys.lp", "./Composer/asp/notes.lp"] if composer_files is None else composer_files
+            ["./Composer/asp/keys.lp", "./Composer/asp/notes.lp"]
+            if composer_files is None
+            else composer_files
         )
 
         self.setup_ctl(parallel_mode, random_heuristics)
 
         self._rand_heur = random_heuristics
         self._parallel_mode = parallel_mode
-        self._curr_model = []
-        self._time_max = 16
-        self._seq_distance = None
+        self._curr_model: List[clingo.Symbol] = []
+        self._time_max: int = 16
+        self._seq_distance: Optional[int] = None
         self._range = (range[0], range[1])
 
         self._orig_pos_to_space = {
@@ -55,7 +60,7 @@ class CompositionBase(ABC):
             6: "distances",
         }
         self._key = key
-        self.NumPatterns = 0
+        self.NumPatterns: int = 0
 
     @property
     def Current_Model(self):
@@ -121,8 +126,8 @@ class CompositionBase(ABC):
 
         self._ctl = clingo.Control(self._clingo_args)
         self._ctl.configuration.solve.parallel_mode = (
-             parallel_mode if parallel_mode != None else "1,compete"
-         )
+            parallel_mode if parallel_mode != None else "1,compete"
+        )
         for file in self._composer_files:
             self._ctl.load(file)
 
@@ -131,16 +136,22 @@ class CompositionBase(ABC):
 
     @abstractmethod
     def ground(self, *args, **kwargs):
-        raise NotImplementedError("This is the base method. It has to be implemented in all subclasses.")
+        raise NotImplementedError(
+            "This is an abstract method. It has to be implemented in all subclasses."
+        )
 
-    def _model_handler(self, yield_: bool, model: Model, solve_ctl: clingo.SolveControl):
+    def _model_handler(self, model: Model):
         self._curr_model = model.symbols(shown=True)
-        if yield_:
-            solve_ctl.add_nogood([(atm, True) for atm in model.symbols(atoms=True)])
 
     @abstractmethod
-    def generate(self, yield_:bool =True, timeout: Optional[int]=None) -> Union[Tuple[clingo.SolveResult, Optional[clingo.Model]], Iterator[clingo.Model]]:
-        raise NotImplementedError("This is the base method. It has to be implemented in all subclasses.")
+    def generate(
+        self, yield_: bool = True, timeout: Optional[int] = None
+    ) -> Union[
+        Tuple[clingo.SolveResult, Optional[clingo.Model]], Iterator[clingo.Model]
+    ]:
+        raise NotImplementedError(
+            "This is an abstract method. It has to be implemented in all subclasses."
+        )
 
     def save(self, path):
         """
@@ -161,12 +172,12 @@ class CompositionBase(ABC):
         self._key = other._key
         self._range = other._range
 
-    def add_patterns(self, patterns: List, areIntervals: bool, track=0, distance=None):
+    def add_patterns(self, patterns: List[Pattern], track=0):
         for pattern in patterns:
-            body = pattern.to_rule_body(track, areIntervals, self._seq_distance)
-            if distance != None:
-                body = self._to_connected(body, distance)
-            self._additional_rules.append((body, bool(pattern.type & PatternType.NEGATIVE)))
+            body = pattern.to_rule_body(track, self._seq_distance)
+            if pattern.distance != None:
+                body = self._to_connected(body, pattern.distance)
+            self._additional_rules.append((body, pattern.type & PatternType.NEGATIVE))
         self.NumPatterns += len(patterns)
 
     def _to_connected(self, composer_pattern, distance=1):
@@ -199,15 +210,15 @@ class CompositionBase(ABC):
                 fact = "trackp" + fact[5:]
             self._general_atoms.append(fact)
 
-    def import_minejob(self, minejob):
+    def import_minejob(self, minejob: Job):
         """
-        Easy and convnient way to import a finished job from the Miner packadge.
-        Negative Patterns get recognised by "neg" in strategy.
+        Easy and convenient way to import a finished job from the Miner package.
+        Negative Patterns get recognized by "neg" in strategy.
         All pattern are used for track 0!
         Parameters
         ----------
         minejob : Job
-            A finished Job from the Miner packadge.
+            A finished Job from the Miner package.
         """
         self._seq_distance = minejob.SequenceLength
         strategy: Strategy
@@ -218,7 +229,6 @@ class CompositionBase(ABC):
                 if patterns:
                     self.add_patterns(
                         patterns,
-                        pos < 0,
                         distance=minejob.Parameters["maxdist"]
                         if bool(strategy.PatternType & PatternType.CONNECTED)
                         else None,
@@ -239,4 +249,4 @@ class CompositionBase(ABC):
             "".join([f"{s}." for s in self.Current_Model]), quiet=True
         )
         mido_obj.save(path)
-        
+

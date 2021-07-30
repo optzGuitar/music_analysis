@@ -141,9 +141,6 @@ class Note:
             else:
                 self.snap()
 
-        # if self.length == 0:
-        #     print("WARNING: note.length was zero!")
-
         len_frac = Fraction(Decimal(str(self.length))).limit_denominator(
             denom_limit
         ) / Fraction(4)
