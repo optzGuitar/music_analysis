@@ -9,7 +9,7 @@ from collections import defaultdict
 
 class IdPattern(Pattern):
     def __init__(self, atoms: List[clingo.Symbol], type: PatternType, position: int) -> None:
-        items = [] # type: List[IdItem]
+        items: List[IdItem] = []
         for atm in atoms:
             if atm.match("support", 1):
                 continue

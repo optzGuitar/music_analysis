@@ -14,7 +14,7 @@ class CleanupBase(ABC):
         self._elimination_strategy = elimination_strategy if elimination_strategy is not None else self._take_lowest_id
         self._type = type
         self._position = position
-        self._models = []
+        self._models: List[List[clingo.Symbol]] = []
 
         self._str_patterns = []
         self._patterns = []
@@ -34,7 +34,7 @@ class CleanupBase(ABC):
     def _model_handler(self, model: clingo.Model):
         self._models.append(model.symbols(shown=True))
 
-    def _solve(self, ctl, timeout) -> Tuple[object, List, int, bool]:
+    def _solve(self, ctl, timeout) -> Tuple[object, List[List[clingo.Symbol]], bool]:
         with ctl.solve(async_=True, on_model=self._model_handler) as handle:
             tim = time.time()
             condition = time.time() - tim < timeout if timeout else True
@@ -50,7 +50,7 @@ class CleanupBase(ABC):
     def run(self, timeout=None) -> List[Pattern]:
         raise NotImplementedError("The run method needs to be implemented by the subclass!")
 
-    def _get_difference(self, models) -> List[Pattern]:
+    def _get_difference(self, models) -> List[IdPattern]:
         all_pattern_set = set(self._patterns)
         if models and models[0]:
             for model in models:

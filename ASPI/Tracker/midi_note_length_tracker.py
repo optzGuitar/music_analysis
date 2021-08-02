@@ -1,3 +1,4 @@
+from typing import Optional
 from ..note import Note
 
 
@@ -93,7 +94,7 @@ class MidiNoteLengthTracker:
         for note in self.active_notes:
             note.length += timeplus
 
-    def note_off(self, note) -> Note:
+    def note_off(self, note) -> Optional[Note]:
         """
         Removes the given note from the active list and returns the Note object.
         Parameters

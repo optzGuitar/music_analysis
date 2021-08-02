@@ -1,3 +1,6 @@
+from typing import Optional
+
+
 class NoteList:
     """
     This class is a helper for the ASP_to_Midi function.
@@ -32,7 +35,7 @@ class NoteList:
         for note in notes:
             self.add(note)
 
-    def get_next_timestep(self) -> int:
+    def get_next_timestep(self) -> Optional[int]:
         """
         This returns the minimal timestep.
         """

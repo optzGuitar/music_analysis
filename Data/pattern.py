@@ -75,7 +75,7 @@ class Pattern:
         pos = 0
         i = 0
         last_neg = False
-        ints = []
+        ints: List[int] = []
         last_pos_i = 0
         chooseatom = _orig_pos_to_atom[self.position]
 

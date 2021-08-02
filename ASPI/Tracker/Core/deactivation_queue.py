@@ -1,3 +1,4 @@
+from typing import Optional
 from .note_list import NoteList
 
 class DeactivationQueue(NoteList):
@@ -9,7 +10,7 @@ class DeactivationQueue(NoteList):
     def __init__(self):
         super().__init__()
 
-    def get_next_timestep(self) -> int:
+    def get_next_timestep(self) -> Optional[int]:
         """
         Returns the minimal timestep.
         """

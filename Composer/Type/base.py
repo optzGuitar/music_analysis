@@ -8,7 +8,6 @@ import re
 from clingo.solving import Model
 from ASPI import ASP_to_MIDI
 from Data.pattern_type import PatternType
-import os.path
 from abc import ABC, abstractmethod
 
 

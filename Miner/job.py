@@ -1,11 +1,11 @@
-from clingo.symbol import Function
+from clingo import Model
 from Data.pattern_type import PatternType
 from .strategy import Strategy
 from ASPI import MIDI_to_ASP
 import clingo
 import time
 from Data.pattern import Pattern
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, List, Optional, Tuple, Union
 from typing import Type as TType
 from .Cleanup.cleanup_base import CleanupBase
 from Data.logger import miner_log
@@ -188,7 +188,7 @@ class Job:
             model.append([])
         return ". ".join([str(s) for s in model[0]]) + "." if model[0] else ""
 
-    def convert_to_intervals(self, position=3) -> str:
+    def convert_to_intervals(self, position=3):
         """
         Converts the given sequence items into interval representation.
         Parameters:
@@ -222,7 +222,7 @@ class Job:
         pattern_type: PatternType,
         position: int,
         distance: Optional[int],
-    ) -> Function:
+    ) -> Callable:
         def inner(model: clingo.Model):
             result_list.append(
                 Pattern(
@@ -244,7 +244,7 @@ class Job:
         tout=None,
         quiet=False,
         stats=False,
-    ) -> list:
+    ) -> Union[List, Tuple[List, Dict]]:
         result = []
         param_args = []
         for arg in self.Parameters:

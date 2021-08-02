@@ -1,7 +1,5 @@
-from typing import Iterator, Optional, Tuple, Union
+from typing import Optional, Tuple
 import clingo
-from clingo.solving import SolveHandle
-import time
 from .base import CompositionBase
 
 class Composition(CompositionBase):

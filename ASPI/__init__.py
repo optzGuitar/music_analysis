@@ -148,7 +148,7 @@ def ASP_to_MIDI(input, ticks_per_beat=480, handlers={}, quiet=False) -> mido.Mid
     facts = list(filter(lambda x: not x.isspace() and x, facts))
 
     tracker = ASPNoteTracker(facts, ticks_per_beat, handlers=handlers)
-    file = mido.MidiFile(ticks_per_beat=ticks_per_beat)
+    file: mido.MidiFile = mido.MidiFile(ticks_per_beat=ticks_per_beat)
 
     tracks = list(tracker.position_per_track.keys())
 

@@ -1,7 +1,7 @@
 from Data.pattern_type import PatternType
 from collections import defaultdict
 from Data.pattern import Pattern
-from typing import DefaultDict, Dict, List, Tuple
+from typing import DefaultDict, List, Tuple
 
 
 class IncrementalRuleSelector:
