@@ -6,3 +6,4 @@ generated_piece.mid
 model.lp
 Data/logs/*
 .mypy_cache
+.pytest_cache
