@@ -106,17 +106,3 @@ class Incremental(Composition):
             self._rule_selector_service.pattern_per_length[len(pattern.items)].append((pattern, track))
         self.NumPatterns += len(patterns)
 
-    def generate(
-        self, timeout=None
-    ) -> Tuple[clingo.SolveResult, Optional[clingo.Model]]:
-        """
-        Generates a new musical piece.
-        """
-
-        with self._ctl.solve(
-            async_=True, on_model=lambda model: self._model_handler(model)
-        ) as handle:
-            res = handle.wait(timeout)
-            if not res:
-                handle.cancel()
-            return (handle.get(), self._curr_model)
