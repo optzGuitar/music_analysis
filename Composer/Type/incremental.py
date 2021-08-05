@@ -1,11 +1,10 @@
 from Composer.Service.incremental_rule_selector import IncrementalRuleSelector
 from Data.composer_model import ComposerModel
-from typing import DefaultDict, Dict, List, Optional, Tuple
+from typing import DefaultDict, Dict, List, Tuple
 import clingo
 
 from clingo.solving import Model
 from Data.pattern import Pattern
-from Data.pattern_type import PatternType
 from .simple import Composition
 from collections import defaultdict
 
