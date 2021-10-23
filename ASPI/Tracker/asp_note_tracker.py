@@ -1,4 +1,4 @@
-from ..Handler.asp_note_handler import (
+from ASPI.Handler.asp_note_handler import (
     note_handler,
     signature_change_handler,
     prog_change_handler,

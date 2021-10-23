@@ -24,7 +24,7 @@ def prog_change_handler(event, tracker: MidiNoteLengthTracker):
 
 def time_sig_handler(event, tracker: MidiNoteLengthTracker):
     tracker.do_timestep(event.time)
-    return f"sig({tracker.track},{tracker.position},{event.numerator},{event.denominator})."
+    return f"sig({tracker.track},{tracker.position},({event.numerator},{event.denominator}))."
 
 
 def key_sig_handler(event, tracker: MidiNoteLengthTracker):
