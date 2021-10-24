@@ -75,6 +75,20 @@ class Incremental(Composition):
     def ground(self, from_timestep: int, to_timestep: int):
         """Grounds the composition."""
 
+        if self._add_pattern_incrementally:
+            rules = self._rule_selector_service.get_rules_for_length_incremental(to_timestep)
+        else:
+            rules = self._rule_selector_service.get_rules_for_length(to_timestep)
+
+        self._add_basic_atoms(from_timestep, to_timestep)
+
+        if rules:
+            self._ctl.add("step", [], "".join(rules))
+        self._ctl.ground([("base", []), ("step", [clingo.Number(self._iteration)])])
+        self._iteration += 1
+
+
+    def _add_basic_atoms(self, from_timestep: int, to_timestep: int):
         self._general_atoms.append(
             f"positions({self._iteration},{from_timestep}..{to_timestep})."
         )
@@ -89,17 +103,6 @@ class Incremental(Composition):
 
         self._ctl.add("base", [], "".join(self._general_atoms))
 
-        if self._add_pattern_incrementally:
-            rules = self._rule_selector_service.get_rules_for_length_incremental(to_timestep)
-        else:
-            rules = self._rule_selector_service.get_rules_for_length(to_timestep)
-
-        if rules:
-            self._ctl.add("step", [], "".join(rules))
-
-        self._ctl.ground([("base", []), ("step", [clingo.Number(self._iteration)])])
-        self._iteration += 1
-                
     def add_patterns(self, patterns: List[Pattern], track=0):
         for pattern in patterns:
             self._rule_selector_service.pattern_per_length[len(pattern.items)].append((pattern, track))

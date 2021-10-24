@@ -228,9 +228,6 @@ class CompositionBase(ABC):
                 if patterns:
                     self.add_patterns(
                         patterns,
-                        distance=minejob.Parameters["maxdist"]
-                        if bool(strategy.PatternType & PatternType.CONNECTED)
-                        else None,
                     )
 
         for file in minejob.MidiAtoms:

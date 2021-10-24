@@ -17,16 +17,9 @@ class IncrementalRuleSelector(RuleSelectorBase):
 
         for pat_len in pattern_lengths_to_ground:
             for pattern, track in self.pattern_per_length[pat_len]:
-                if pattern.type & PatternType.NEGATIVE:
-                    rules.append(
-                        f":- {pattern.to_rule_body(track, self.max_pattern_internal_distance)}."
-                    )
-                else:
-                    rules.append(
-                        f"z{self._grounded_rules} :- {pattern.to_rule_body(track, self.max_pattern_internal_distance)}."
-                    )
-                    rules.append(f":- not z{self._grounded_rules}.")
-                    self._grounded_rules += 1
+                rules += self._create_rule(pattern, track, length)
+
+                self._grounded_rules += 1
 
         max_len = self._grounded_length
         if pattern_lengths_to_ground:
@@ -39,18 +32,7 @@ class IncrementalRuleSelector(RuleSelectorBase):
         rules = []
         for _, patterns in self.pattern_per_length.items():
             for pattern, track in patterns:
-                if pattern.type & PatternType.NEGATIVE:
-                    rules.append(
-                        f":- {pattern.to_rule_body(track, self.max_pattern_internal_distance, length)}."
-                    )
-                else:
-                    rule_head = f"z{self._grounded_rules}"
-                    body = pattern.to_rule_body(
-                        track, self.max_pattern_internal_distance, length,
-                    )
-                    rule = f"{rule_head} :- {body}."
-                    rules.append(rule)
-                    rules.append(f":- not {rule_head}.")
+                rules += self._create_rule(pattern, track, length)
 
                 self._grounded_rules += 1
 

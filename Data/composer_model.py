@@ -1,3 +1,4 @@
+from typing import List
 from clingo import Model
 
 
@@ -22,3 +23,6 @@ class ComposerModel:
 
     def to_rules(self):
         return f'm({self.Length}) :- {", ".join([str(i) for i in self._notes])}.:- not m({self.Length}).'
+
+    def get_notes(self) -> List[str]:
+        return [f'{i}.' for i in self._notes]
