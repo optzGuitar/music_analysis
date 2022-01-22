@@ -5,13 +5,10 @@ from functools import lru_cache
 
 class SlidingWindowRuleSelectorService(RuleSelectorBase):
     def select(self, end: int) -> List[str]:
-        rules = []
-        pattern_lengths_to_ground = list(
-            filter(
-                lambda x:  x <= end,
-                self.pattern_per_length.keys(),
-            )
-        )
+        rules: List[str] = []
+        pattern_lengths_to_ground = [
+            x for x in self.pattern_per_length if x <= end
+        ]
 
         for length in pattern_lengths_to_ground:
             rules += self._get_rules_for_length(length)

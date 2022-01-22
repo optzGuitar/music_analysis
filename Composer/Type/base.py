@@ -43,6 +43,7 @@ class CompositionBase(ABC):
             else composer_files
         )
 
+        # TODO: remove call here as it is of no benefit
         self.setup_ctl(parallel_mode, random_heuristics)
 
         self._rand_heur = random_heuristics
@@ -108,7 +109,7 @@ class CompositionBase(ABC):
     def Key(self, value):
         self._key = value
 
-    def setup_ctl(self, parallel_mode: str, random_heuristics: bool):
+    def setup_ctl(self, parallel_mode: Optional[str], random_heuristics: bool):
         if random_heuristics:
             # stolen from Flavio Everado :D
             self._clingo_args = [
@@ -176,7 +177,8 @@ class CompositionBase(ABC):
             body = pattern.to_rule_body(track, self._seq_distance)
             if pattern.distance != None:
                 body = self._to_connected(body, pattern.distance)
-            self._additional_rules.append((body, pattern.type & PatternType.NEGATIVE))
+            self._additional_rules.append(
+                (body, pattern.type & PatternType.NEGATIVE))
         self.NumPatterns += len(patterns)
 
     def _to_connected(self, composer_pattern, distance=1):
@@ -245,4 +247,3 @@ class CompositionBase(ABC):
             "".join([f"{s}." for s in self.Current_Model]), quiet=True
         )
         mido_obj.save(path)
-

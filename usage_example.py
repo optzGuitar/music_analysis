@@ -1,5 +1,7 @@
 import argparse
 import os
+import time
+from Composer.Type.sliding_window import SlidingWindow
 
 import Miner
 from Composer.Type.optimizer import OptimizedComposition
@@ -15,7 +17,7 @@ parser.add_argument(
 args = parser.parse_args()
 
 # (45, 75) means all notes between 45 and 75 can be chosen (MIDI equivalent)
-comp = OptimizedComposition((45, 75))
+comp = SlidingWindow((45, 75))
 # the length of the composition
 comp.Time_Max = 16
 
@@ -60,14 +62,26 @@ comp.import_minejob(minejob)
 print("finished importing")
 
 # this step ensures that the program is satisfiable by eliminating contradictory rules
-comp.validate()
+# comp.validate()
 print('finished validating')
 
-comp.ground()
-print("finished grounding")
+start = time.time()
+length = 200
+window = 10
+for f, t in zip(range(length), range(window, length)):
+    comp.setup_ctl(None, False)
+    a = time.time()
+    comp.ground(f, t)
+    b = time.time()
+    print("finished grounding")
 
-res, model = comp.generate(timeout=60)
-print("finished generating")
+    c = time.time()
+    res, model = comp.generate(timeout=60)
+    d = time.time()
+    print("finished generating")
+    print(f"combined: {d-a:.2f} ground: {b-a:.2f} solve: {d-c:.2f}")
+end_time = time.time()
+print(f"took: {end_time - start:.2f} to generate a {length} long piece with a window of {window}")
 print(res)
 
 if str(res) == "SAT":
