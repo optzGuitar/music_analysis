@@ -54,7 +54,7 @@ minejob.run_methods([f"{args.ans}"])
 # this step remove those patterns
 #
 # also if you have anything to remove from the mined patterns do it here
-minejob.cleanup(CircularPatternCleanup, timeout=60, ignore_unsat=True)
+#minejob.cleanup(CircularPatternCleanup, timeout=60, ignore_unsat=True)
 print("finished mining process")
 
 # import the mined sequences into the Composer and compose music

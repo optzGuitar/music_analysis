@@ -23,7 +23,7 @@ class ComposerModel:
     def Length(self) -> int:
         return len(self._notes)
 
-    # TODO: wouldnt it be better just add the atoms directly? would probably save computation time.
+    # TODO: wouldnt it be better just add the atoms directly? would probably save computation time. (does this work??)
     def to_rules(self) -> str:
         return f'm({self.Length}) :- {", ".join([str(i) for i in self._notes])}.:- not m({self.Length}).'
 

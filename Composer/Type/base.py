@@ -136,9 +136,7 @@ class CompositionBase(ABC):
 
     @abstractmethod
     def ground(self, *args, **kwargs):
-        raise NotImplementedError(
-            "This is an abstract method. It has to be implemented in all subclasses."
-        )
+        pass
 
     def _model_handler(self, model: Model):
         self._curr_model = model.symbols(shown=True)
@@ -149,9 +147,7 @@ class CompositionBase(ABC):
     ) -> Union[
         Tuple[clingo.SolveResult, Optional[clingo.Model]], Iterator[clingo.Model]
     ]:
-        raise NotImplementedError(
-            "This is an abstract method. It has to be implemented in all subclasses."
-        )
+        pass
 
     def save(self, path):
         """

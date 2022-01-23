@@ -1,7 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from fractions import Fraction
-from typing import List
+from typing import List, Optional
 import clingo
 
 from Data.note_atoms import NoteAtoms
@@ -17,6 +17,8 @@ class Note:
     length: Fraction
     distance: Fraction
 
+    symbol: Optional[clingo.Symbol] = None
+
     @classmethod
     def from_symbol(cls, note: clingo.Symbol) -> Note:
         args = note.arguments
@@ -30,6 +32,7 @@ class Note:
                             args[5].arguments[1].number),
             distance=Fraction(args[6].arguments[0].number,
                               args[5].arguments[1].number),
+            symbol=note,
         )
 
     def __str__(self) -> str:
