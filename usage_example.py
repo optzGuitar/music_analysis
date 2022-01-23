@@ -17,7 +17,7 @@ parser.add_argument(
 args = parser.parse_args()
 
 # (45, 75) means all notes between 45 and 75 can be chosen (MIDI equivalent)
-comp = SlidingWindow((45, 75))
+comp = SlidingWindow((45, 75), max_generation_window=10, max_view_window=20)
 # the length of the composition
 comp.Time_Max = 16
 
@@ -66,12 +66,10 @@ print("finished importing")
 print('finished validating')
 
 start = time.time()
-length = 200
-window = 10
-for f, t in zip(range(length), range(window, length)):
+for _ in range(20):
     comp.setup_ctl(None, False)
     a = time.time()
-    comp.ground(f, t)
+    comp.ground()
     b = time.time()
     print("finished grounding")
 
@@ -81,7 +79,7 @@ for f, t in zip(range(length), range(window, length)):
     print("finished generating")
     print(f"combined: {d-a:.2f} ground: {b-a:.2f} solve: {d-c:.2f}")
 end_time = time.time()
-print(f"took: {end_time - start:.2f} to generate a {length} long piece with a window of {window}")
+print(f"took: {end_time - start:.2f} to generate")
 print(res)
 
 if str(res) == "SAT":

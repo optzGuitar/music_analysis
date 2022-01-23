@@ -1,5 +1,7 @@
+from dataclasses import dataclass
 from Data.sign_enumeration import SignEnumeration
 from .item import Item
+
 
 class IdItem(Item):
     def __init__(self, id: int, pos: int, value, sign: SignEnumeration) -> None:

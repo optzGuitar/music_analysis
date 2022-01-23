@@ -84,6 +84,9 @@ class Incremental(Composition):
 
         self._add_basic_atoms(from_timestep, to_timestep)
 
+        for models in self._models_per_length.values():
+            self._ctl.add("base", [], models[-1].to_rules())
+
         if rules:
             self._ctl.add("step", [], "".join(rules))
         self._ctl.ground(
@@ -99,10 +102,7 @@ class Incremental(Composition):
         )
         self._general_atoms.append(
             f"range({self._range[0]}..{self._range[1]}).")
-        self._general_atoms.append(f"track(0).")
-
-        for models in self._models_per_length.values():
-            self._ctl.add("base", [], models[-1].to_rules())
+        self._general_atoms.append("track(0).")
 
         self._ctl.add("base", [], "".join(self._general_atoms))
 

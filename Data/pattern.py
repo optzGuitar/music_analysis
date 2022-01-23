@@ -1,19 +1,20 @@
 from collections import defaultdict
+from Data.note_atoms import NoteAtoms
 from Data.sign_enumeration import SignEnumeration
 from Data.pattern_type import PatternType
 from typing import Dict, List, Optional, Tuple
 from .item import Item
-from itertools import chain
 _orig_pos_to_atom = {
-    3: "chosennote",
-    4: "chosenvel",
-    5: "chosenlength",
-    6: "chosendist",
+    3: NoteAtoms.NOTE_ATOM.value,
+    4: NoteAtoms.VELOCITY_ATOM.value,
+    5: NoteAtoms.LENGTH_ATOM.value,
+    6: NoteAtoms.DISTANCE_ATOM.value,
 }
+
 
 class Pattern:
     def __init__(self, atoms: List, type: PatternType, position: int, are_intervals: bool, distance: Optional[int]) -> None:
-        items = [] # type: List[Item]
+        items = []  # type: List[Item]
 
         try:
             for atm in atoms:
@@ -28,7 +29,7 @@ class Pattern:
                 )
         except AttributeError:
             items = atoms
-            
+
         items.sort()
         self.items = items
         self.type = type
@@ -58,7 +59,8 @@ class Pattern:
 
     def to_rule_body(self, track=0, pattern_max_distance=None, length=None) -> str:
         """Converts the current pattern into a rule body used by the composer."""
-        atoms, pos, interv = self._to_full_rule_body_parts(track, pattern_max_distance)
+        atoms, pos, interv = self._to_full_rule_body_parts(
+            track, pattern_max_distance)
 
         kept_data = []
         for atms, posiiton_rules, interval_rules in zip(atoms.items(), pos.items(), interv.items()):
@@ -67,7 +69,7 @@ class Pattern:
                 kept_data += atms[1] + posiiton_rules[1] + interval_rules[1]
 
         return ','.join(kept_data)
-        
+
     def _to_full_rule_body_parts(self, track, pattern_max_distance) -> Tuple[Dict[int, List[str]], Dict[int, List[str]], Dict[int, List[str]]]:
         atoms: Dict[int, List[str]] = defaultdict(list)
         pos_restrictions: Dict[int, List[str]] = defaultdict(list)
@@ -86,7 +88,8 @@ class Pattern:
                 pos += 1
                 pos_restrictions[pos].append(f"P{pos-1}<P{pos}")
                 if self.are_intervals:
-                    interval_restrictions[pos].append(f"I{i+1}-I{i}={itm.value}")
+                    interval_restrictions[pos].append(
+                        f"I{i+1}-I{i}={itm.value}")
 
             if not self.are_intervals:
                 atoms[pos].append(f"{chooseatom}({track},P{pos},{itm.value})")
@@ -100,20 +103,24 @@ class Pattern:
                     pos_restrictions[pos].append(f"P{pos-1}<P{pos}")
                     if self.are_intervals:
                         if l != len(self.items):
-                            interval_restrictions[pos].append(f"I{i+1}-I{i}={itm.value}")
+                            interval_restrictions[pos].append(
+                                f"I{i+1}-I{i}={itm.value}")
                         for _i in ints:
-                            interval_restrictions[pos].append(f"I{i}-I{_i}={itm.value}")
+                            interval_restrictions[pos].append(
+                                f"I{i}-I{_i}={itm.value}")
                         ints.clear()
                 last_neg = False
             else:
                 if self.are_intervals:
-                    interval_restrictions[pos].append(f"I{i}-I{last_pos_i}={itm.value}")
+                    interval_restrictions[pos].append(
+                        f"I{i}-I{last_pos_i}={itm.value}")
                     ints.append(i)
                 last_neg = True
 
             i += 1
 
         if pattern_max_distance is not None:
-            pos_restrictions[pos].append(f"P{pos-1}-P0 <= {pattern_max_distance},P{pos-1}-P0>0")
+            pos_restrictions[pos].append(
+                f"P{pos-1}-P0 <= {pattern_max_distance},P{pos-1}-P0>0")
 
         return atoms, pos_restrictions, interval_restrictions

@@ -1,13 +1,12 @@
+from typing import Any
 from Data.sign_enumeration import SignEnumeration
+from dataclasses import dataclass
 
-
+@dataclass
 class Item:
-    def __init__(
-        self, pos: int, value, sign: SignEnumeration = SignEnumeration.POS
-    ) -> None:
-        self.position = pos
-        self.sign = sign
-        self.value = value
+    position: int
+    value: Any
+    sign: SignEnumeration = SignEnumeration.POS
 
     def __eq__(self, o: object) -> bool:
         if isinstance(o, Item):
