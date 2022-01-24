@@ -10,6 +10,14 @@ class PartialComposerModel(ComposerModel):
         super().__init__(model)
         self._previous_model = previous_model
 
+    @property
+    def Length(self) -> int:
+        length = len(self._notes)
+        if self._previous_model is not None:
+            length += self._previous_model.Length
+
+        return length
+
     def get_complete_model(self) -> Set[clingo.Symbol]:
         data = set()
         if self._previous_model is not None:
@@ -20,7 +28,5 @@ class PartialComposerModel(ComposerModel):
             self._keys +
             self._tracks
         )
-
-        # TODO: some notes/positions are still doubled!
 
         return data

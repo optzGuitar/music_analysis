@@ -50,7 +50,7 @@ class SlidingWindow(Incremental):
     def ground(self):
         """Grounds the composition."""
         from_ = self._iteration * self._max_generation_size
-        to_ = from_ + self._max_generation_size
+        to_ = from_ + self._max_generation_size - 1
 
         if self._next_previous:
             self._previous_model = self._next_previous

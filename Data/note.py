@@ -53,4 +53,4 @@ class Note:
         return f"{atom.value}({self.track},{self.position},{value})"
 
     def is_played_between(self, from_timestep: int, to_timestep: int) -> bool:
-        return from_timestep <= self.position <= to_timestep
+        return from_timestep <= self.position < to_timestep
