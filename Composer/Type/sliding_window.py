@@ -6,8 +6,7 @@ from Composer.Service.sliding_window_rule_selector import (
 )
 from Composer.Type.incremental import Incremental
 import clingo
-
-from Data.partial_composer_model import PartialComposerModel
+from Data.composer_model import ComposerModel
 
 
 class SlidingWindow(Incremental):
@@ -34,17 +33,11 @@ class SlidingWindow(Incremental):
         self._max_generation_size = max_generation_window
         self._max_view_window = max_view_window
 
-        self._curr_model: Optional[PartialComposerModel] = None
-        self._previous_model: Optional[PartialComposerModel] = None
-        self._next_previous: Optional[PartialComposerModel] = None
-
-    # TODO: implement true window
-    # TODO: override model handler to handle the generated partial compositions
+        self._curr_model: Optional[ComposerModel] = None
 
     def _model_handler(self, model: clingo.Model):
-        comp_model = PartialComposerModel(model, self._previous_model)
+        comp_model = ComposerModel(model)
         self._curr_model = comp_model
-        self._next_previous = comp_model
         self._models_per_length[comp_model.Length].append(comp_model)
 
     def ground(self):
@@ -52,15 +45,12 @@ class SlidingWindow(Incremental):
         from_ = self._iteration * self._max_generation_size
         to_ = from_ + self._max_generation_size - 1
 
-        if self._next_previous:
-            self._previous_model = self._next_previous
-
         pattern_lengths = self._models_per_length.keys()
         max_len = max(pattern_lengths) if pattern_lengths else None
 
         rules = self._rule_selector_service.select(to_)
         if max_len is not None:
-            rules += self._get_window_model(max_len)
+            rules += (self._get_window_model(from_))
 
         self._add_basic_atoms(from_, to_)
 
@@ -70,12 +60,12 @@ class SlidingWindow(Incremental):
             [("base", []), ("step", [clingo.Number(self._iteration)])])
         self._iteration += 1
 
-    def _get_window_model(self, model_length: int) -> List[str]:
+    def _get_window_model(self, from_: int) -> List[str]:
         return [
             str(i)
-            for i in self._models_per_length[model_length][-1].get_window(
-                (self._iteration - 1) * self._max_view_window,
-                self._iteration * self._max_view_window,
+            for i in self._curr_model.get_window(
+                max([from_ - self._iteration * self._max_view_window, 0]),
+                from_,
             )
         ]
 
@@ -89,7 +79,7 @@ class SlidingWindow(Incremental):
         """
         with open(path, "w") as file:
             model_string = [
-                f"{s}.\n" for s in self._curr_model.get_complete_model()
+                f"{s}.\n" for s in self._curr_model._raw_model
             ]
             file.writelines(model_string)
 
@@ -102,6 +92,6 @@ class SlidingWindow(Incremental):
             The path to the file.
         """
         mido_obj = ASP_to_MIDI(
-            "".join([f"{s}." for s in self.Current_Model.get_complete_model()]), quiet=True
+            "".join([f"{s}." for s in self.Current_Model._raw_model]), quiet=True
         )
         mido_obj.save(path)

@@ -6,7 +6,7 @@ from Data.note import Note
 
 class ComposerModel:
     def __init__(self, model: Model) -> None:
-        self._raw_model = model
+        self._raw_model = model.symbols(shown=True)
         self._notes: List[Note] = []
         self._keys = []
         self._tracks = []
@@ -23,7 +23,6 @@ class ComposerModel:
     def Length(self) -> int:
         return len(self._notes)
 
-    # TODO: wouldnt it be better just add the atoms directly? would probably save computation time. (does this work??)
     def to_rules(self) -> str:
         return f'm({self.Length}) :- {", ".join([str(i) for i in self._notes])}.:- not m({self.Length}).'
 
