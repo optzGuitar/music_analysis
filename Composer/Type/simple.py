@@ -1,6 +1,7 @@
-from typing import Optional, Tuple
+from typing import List, Tuple
 import clingo
 from .base import CompositionBase
+
 
 class Composition(CompositionBase):
     """
@@ -13,7 +14,8 @@ class Composition(CompositionBase):
         self._general_atoms.append(f"positions(0..{self.Time_Max}).")
         self._general_atoms.append(f"track(0).")
         self._general_atoms.append(f"keys(0,0..{self.Time_Max},{self._key}).")
-        self._general_atoms.append(f"range({self._range[0]}..{self._range[1]}).")
+        self._general_atoms.append(
+            f"range({self._range[0]}..{self._range[1]}).")
 
         rules = []
         for i, (body, type) in enumerate(self._additional_rules):
@@ -27,7 +29,7 @@ class Composition(CompositionBase):
         self._ctl.add("base", [], "".join(rules))
         self._ctl.ground([("base", [])])
 
-    def generate(self, timeout=None) -> Tuple[clingo.SolveResult, Optional[clingo.Model]]:
+    def generate(self, timeout=None) -> Tuple[clingo.SolveResult, List[clingo.Symbol]]:
         """
         Generates a new musical piece.
         """
