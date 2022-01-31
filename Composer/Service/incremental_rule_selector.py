@@ -8,12 +8,8 @@ from typing import DefaultDict, List, Tuple
 class IncrementalRuleSelector(RuleSelectorBase):
     def get_rules_for_length(self, length: int) -> List[str]:
         rules = []
-        pattern_lengths_to_ground = list(
-            filter(
-                lambda x: self._grounded_length <= length and x <= length,
-                self.pattern_per_length.keys(),
-            )
-        )
+        pattern_lengths_to_ground = [i for i in self.pattern_per_length.keys()
+                                     if self._grounded_length < i <= length]
 
         for pat_len in pattern_lengths_to_ground:
             for pattern, track in self.pattern_per_length[pat_len]:

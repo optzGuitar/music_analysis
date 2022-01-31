@@ -21,7 +21,7 @@ class CompositionBase(ABC):
         range: Tuple[int, int],
         random_heuristics: bool = False,
         composer_files: Optional[List[str]] = None,
-        parallel_mode: Optional[str] = None,  # x,{split;compete}
+        parallel_mode: str = "1,compete",  # x,{split;compete}
         key: str = "(0,(major,ionian))",
     ):
         """
@@ -43,9 +43,6 @@ class CompositionBase(ABC):
             else composer_files
         )
 
-        # TODO: remove call here as it is of no benefit
-        self.setup_ctl(parallel_mode, random_heuristics)
-
         self._rand_heur = random_heuristics
         self._parallel_mode = parallel_mode
         self._curr_model: List[clingo.Symbol] = []
@@ -61,6 +58,8 @@ class CompositionBase(ABC):
         }
         self._key = key
         self.NumPatterns: int = 0
+
+        self.setup_ctl()
 
     @property
     def Current_Model(self):
@@ -109,8 +108,8 @@ class CompositionBase(ABC):
     def Key(self, value):
         self._key = value
 
-    def setup_ctl(self, parallel_mode: Optional[str], random_heuristics: bool):
-        if random_heuristics:
+    def setup_ctl(self):
+        if self._rand_heur:
             # stolen from Flavio Everado :D
             self._clingo_args = [
                 "--warn=none",
@@ -125,9 +124,7 @@ class CompositionBase(ABC):
             self._clingo_args = []
 
         self._ctl = clingo.Control(self._clingo_args)
-        self._ctl.configuration.solve.parallel_mode = (
-            parallel_mode if parallel_mode != None else "1,compete"
-        )
+        self._ctl.configuration.solve.parallel_mode = self._parallel_mode
         for file in self._composer_files:
             self._ctl.load(file)
 

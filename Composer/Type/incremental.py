@@ -1,6 +1,7 @@
+from ASPI import ASP_to_MIDI
 from Composer.Service.incremental_rule_selector import IncrementalRuleSelector
 from Data.composer_model import ComposerModel
-from typing import DefaultDict, Dict, List, Tuple
+from typing import DefaultDict, List, Optional, Tuple
 import clingo
 
 from clingo.solving import Model
@@ -41,9 +42,10 @@ class Incremental(Composition):
         )
         self._iteration = 0
         self._add_pattern_incrementally = add_pattern_incrementally
-        # holds the pattern and their rule head, this enables me to chain incrementally added rules
-        self._incrementally_grounded_patterns: Dict[Pattern, str] = []
         self._rule_selector_service = IncrementalRuleSelector()
+
+        self._curr_model: Optional[ComposerModel] = None
+        self._last_length: Optional[int] = None
 
     @property
     def ModelsPerLength(self):
@@ -66,14 +68,16 @@ class Incremental(Composition):
         self._rule_selector_service.max_pattern_internal_distance = value
 
     def _model_handler(self, model: Model):
-        symb = model.symbols(shown=True)
-        self._curr_model = symb
+        comp_model = ComposerModel(model, self._last_length)
+        self._curr_model = comp_model
 
-        comp_model = ComposerModel(model)
         self._models_per_length[comp_model.Length].append(comp_model)
 
     def ground(self, from_timestep: int, to_timestep: int):
         """Grounds the composition."""
+
+        if self._curr_model:
+            self._last_length = self._curr_model.Length
 
         if self._add_pattern_incrementally:
             rules = self._rule_selector_service.get_rules_for_length_incremental(
@@ -93,6 +97,9 @@ class Incremental(Composition):
             [("base", []), ("step", [clingo.Number(self._iteration)])])
         self._iteration += 1
 
+    def generate(self, timeout=None) -> Tuple[clingo.SolveResult, ComposerModel]:
+        return super().generate(timeout)
+
     def _add_basic_atoms(self, from_timestep: int, to_timestep: int):
         self._general_atoms.append(
             f"positions({self._iteration},{from_timestep}..{to_timestep})."
@@ -111,3 +118,30 @@ class Incremental(Composition):
             self._rule_selector_service.pattern_per_length[len(
                 pattern.items)].append((pattern, track))
         self.NumPatterns += len(patterns)
+
+    def save(self, path):
+        """
+        Saves the current model to a file.
+        Parameters
+        ----------
+        path : str
+            The path to a file for saving the current model.
+        """
+        with open(path, "w") as file:
+            model_string = [
+                f"{s}.\n" for s in self._curr_model._raw_model
+            ]
+            file.writelines(model_string)
+
+    def save_midi(self, path):
+        """
+        Saves a MIDI file of the Current_Model.
+        Parameters
+        ----------
+        path : str
+            The path to the file.
+        """
+        mido_obj = ASP_to_MIDI(
+            "".join([f"{s}." for s in self._curr_model._raw_model]), quiet=True
+        )
+        mido_obj.save(path)

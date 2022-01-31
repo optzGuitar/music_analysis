@@ -1,7 +1,8 @@
 from abc import ABC
 from collections import defaultdict
-from typing import List, Pattern, Tuple
+from typing import List, Tuple
 
+from Data.pattern import Pattern
 from Data.pattern_type import PatternType
 
 
@@ -32,5 +33,6 @@ class RuleSelectorBase(ABC):
         if pattern.type & PatternType.NEGATIVE:
             return [self._create_negative_constraint(pattern, track, length)]
         else:
-            rule, force = self._create_positive_constraint(pattern, track, length)
+            rule, force = self._create_positive_constraint(
+                pattern, track, length)
             return [rule, force]
