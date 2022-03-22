@@ -50,7 +50,7 @@ class Note:
         ]
 
     def _construct_atom(self, atom: NoteAtoms, value: str) -> str:
-        return f"{atom.value}({self.track},{self.position},{value})"
+        return f"{atom.value}({self.track},{self.position},{value})."
 
     def is_played_between(self, from_timestep: int, to_timestep: int) -> bool:
         return from_timestep <= self.position < to_timestep

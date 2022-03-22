@@ -1,7 +1,9 @@
 import time
+from typing import Dict, Optional, Pattern
 
 import clingo
 from .base import CompositionBase
+
 
 class OptimizedComposition(CompositionBase):
     """
@@ -37,31 +39,33 @@ class OptimizedComposition(CompositionBase):
         self._negative_optimized = negative_optimized
         self._intervals_optimized = intervals_optimized
 
-    def ground(self, error_head=False):
+    def ground(self, error_head=False) -> Optional[Dict[str, Pattern]]:
         self._general_atoms.append(f"positions(0..{self.Time_Max}).")
         self._general_atoms.append(f"track(0).")
         self._general_atoms.append(f"keys(0,0..{self.Time_Max},{self._key}).")
-        self._general_atoms.append(f"range({self._range[0]}..{self._range[1]}).")
+        self._general_atoms.append(
+            f"range({self._range[0]}..{self._range[1]}).")
 
         rules = []
         pos_rules = 0
         err_count = 0
         rule_translate = {}
-        for body, type in self._additional_rules:
+        for pattern in self._patterns:
+            body = pattern.to_rule_body()
             head = f"error({err_count})" if error_head else ""
-            if type:
+            if pattern.is_negative:
                 c = "~" if self._negative_optimized and not error_head else "-"
                 end = "[-1]" if self._negative_optimized and not error_head else ""
                 rules.append(f"{head}:{c} {body}. {end}")
             else:
                 c = "~" if self._positive_optimized and not error_head else "-"
                 end = "[-1]" if self._positive_optimized and not error_head else ""
-                rules.append(f"z{pos_rules} :- {body}.")
-                rules.append(f"{head}:{c} not z{pos_rules}. {end}")
+                rules.append(f"z({pos_rules}) :- {body}.")
+                rules.append(f"{head}:{c} not z({pos_rules}). {end}")
                 pos_rules += 1
 
             if error_head:
-                rule_translate[f"error({err_count})"] = (body, type)
+                rule_translate[f"error({err_count})"] = pattern
                 err_count += 1
 
         if error_head:
@@ -71,6 +75,7 @@ class OptimizedComposition(CompositionBase):
         self._ctl.add("base", [], "".join(self._general_atoms))
         self._ctl.add("base", [], "".join(rules))
         self._ctl.ground([("base", [])])
+
         if error_head:
             return rule_translate
 
@@ -108,13 +113,14 @@ class OptimizedComposition(CompositionBase):
 
         rule_translate = self.ground(True)
         res, model = self.generate(timeout)
-        self.setup_ctl(self._parallel_mode, self._rand_heur)
+        self.setup_ctl()
 
         if res.satisfiable:
             if remove:
                 for symb in model:
                     if symb.match("error", 1):
-                        self._additional_rules.remove(rule_translate[str(symb)])
+                        self._patterns.remove(
+                            rule_translate[str(symb)])
             problem_rules = []
             m = []
             for symb in model:
@@ -125,4 +131,3 @@ class OptimizedComposition(CompositionBase):
             self._curr_model = m
             return problem_rules, res, m, self._ctl
         return [], None, [], self._ctl
-

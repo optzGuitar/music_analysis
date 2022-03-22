@@ -1,15 +1,12 @@
 from Composer.Service.rule_selector_base import RuleSelectorBase
-from Data.pattern_type import PatternType
-from collections import defaultdict
-from Data.pattern import Pattern
-from typing import DefaultDict, List, Tuple
+from typing import List
 
 
 class IncrementalRuleSelector(RuleSelectorBase):
     def get_rules_for_length(self, length: int) -> List[str]:
         rules = []
         pattern_lengths_to_ground = [i for i in self.pattern_per_length.keys()
-                                     if self._grounded_length < i <= length]
+                                     ]  # if self._grounded_length < i <= length]
 
         for pat_len in pattern_lengths_to_ground:
             for pattern, track in self.pattern_per_length[pat_len]:

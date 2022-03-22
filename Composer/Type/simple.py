@@ -18,9 +18,12 @@ class Composition(CompositionBase):
             f"range({self._range[0]}..{self._range[1]}).")
 
         rules = []
-        for i, (body, type) in enumerate(self._additional_rules):
-            if type:
-                rules.append(f":- {body}.")
+        for i, pattern in enumerate(self._patterns):
+            body = pattern.to_rule_body(
+                track=0)
+            if pattern.is_negative:
+                rules.append(
+                    f":- {body}.")
             else:
                 rules.append(f"z{i} :- {body}.")
                 rules.append(f":- not z{i}.")

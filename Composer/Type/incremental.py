@@ -1,5 +1,6 @@
 from ASPI import ASP_to_MIDI
 from Composer.Service.incremental_rule_selector import IncrementalRuleSelector
+from Composer.Type.base import CompositionBase
 from Data.composer_model import ComposerModel
 from typing import DefaultDict, List, Optional, Tuple
 import clingo
@@ -16,7 +17,7 @@ class Incremental(Composition):
         range,
         random_heuristics=False,
         composer_files=None,
-        parallel_mode=None,
+        parallel_mode="1,compete",  # x,{split;compete},
         key="(0,(major,ionian))",
         add_pattern_incrementally=False,
     ):
@@ -32,11 +33,8 @@ class Incremental(Composition):
             if composer_files is None
             else composer_files
         )
-        self.setup_ctl(parallel_mode, random_heuristics)
+        self.setup_ctl()
 
-        self._pattern_per_length: DefaultDict[
-            int, List[Tuple[Pattern, int]]
-        ] = defaultdict(list)
         self._models_per_length: DefaultDict[int, List[ComposerModel]] = defaultdict(
             list
         )
@@ -54,6 +52,10 @@ class Incremental(Composition):
     @property
     def SequenceLength(self):
         return super().SequenceLength
+
+    @property
+    def Current_Model(self) -> Optional[ComposerModel]:
+        return super().Current_Model
 
     @SequenceLength.setter
     def SequenceLength(self, value):
@@ -73,7 +75,7 @@ class Incremental(Composition):
 
         self._models_per_length[comp_model.Length].append(comp_model)
 
-    def ground(self, from_timestep: int, to_timestep: int):
+    def ground(self, from_timestep: int, to_timestep: int, chain_models=True):
         """Grounds the composition."""
 
         if self._curr_model:
@@ -86,13 +88,14 @@ class Incremental(Composition):
             rules = self._rule_selector_service.get_rules_for_length(
                 to_timestep)
 
-        self._add_basic_atoms(from_timestep, to_timestep)
+        if not rules:
+            x = 1
 
-        for models in self._models_per_length.values():
-            self._ctl.add("base", [], models[-1].to_rules())
+        self._add_basic_atoms(from_timestep, to_timestep)
+        self._add_old_models(chain_models)
 
         if rules:
-            self._ctl.add("step", [], "".join(rules))
+            self._ctl.add("step", [str(self._iteration)], "".join(rules))
         self._ctl.ground(
             [("base", []), ("step", [clingo.Number(self._iteration)])])
         self._iteration += 1
@@ -101,23 +104,36 @@ class Incremental(Composition):
         return super().generate(timeout)
 
     def _add_basic_atoms(self, from_timestep: int, to_timestep: int):
-        self._general_atoms.append(
-            f"positions({self._iteration},{from_timestep}..{to_timestep})."
-        )
-        self._general_atoms.append(
-            f"keys(0,{from_timestep}..{to_timestep},{self._key})."
-        )
-        self._general_atoms.append(
-            f"range({self._range[0]}..{self._range[1]}).")
-        self._general_atoms.append("track(0).")
+        self._ctl.add("base", [],
+                      f"positions({self._iteration},{from_timestep}..{to_timestep})."
+                      )
+        self._ctl.add("base", [],
+                      f"keys(0,{from_timestep}..{to_timestep},{self._key})."
+                      )
+        self._ctl.add("base", [],
+                      f"range({self._range[0]}..{self._range[1]}).")
+        self._ctl.add("base", [], "track(0).")
 
         self._ctl.add("base", [], "".join(self._general_atoms))
+
+    def _add_old_models(self, chain: bool):
+        if chain:
+            for models in self._models_per_length.values():
+                self._ctl.add("base", [], models[-1].to_rules())
+        elif self._models_per_length:
+            self._ctl.add("base", [], list(
+                self._models_per_length.values())[-1][-1].to_rules(False))
 
     def add_patterns(self, patterns: List[Pattern], track=0):
         for pattern in patterns:
             self._rule_selector_service.pattern_per_length[len(
                 pattern.items)].append((pattern, track))
         self.NumPatterns += len(patterns)
+        self._patterns += patterns
+
+    def from_composition(self, other: CompositionBase):
+        self.add_patterns(other._patterns)
+        super().from_composition(other)
 
     def save(self, path):
         """

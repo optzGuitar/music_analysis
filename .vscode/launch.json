@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "usage_example.py",
             "args": [
-                "10"
+                "100"
             ],
             "console": "integratedTerminal"
         },

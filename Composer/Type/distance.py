@@ -1,6 +1,9 @@
 from .optimizer import OptimizedComposition
 import random
 
+# TODO: fix
+
+
 class DistanceComposition(OptimizedComposition):
     def std_distance(l1, l2):
         l3 = list(set(l1) & set(l2))  # Intersect
@@ -43,7 +46,8 @@ class DistanceComposition(OptimizedComposition):
                 if "note" in atm:
                     sp = atm.split(",")
                     norm_note = int(sp[3].strip()) - key
-                    norm_note = (norm_note + 12) if norm_note < 0 else norm_note
+                    norm_note = (
+                        norm_note + 12) if norm_note < 0 else norm_note
                     norm_note %= 12
                     mod_atm = (
                         norm_note,
@@ -106,7 +110,8 @@ class DistanceComposition(OptimizedComposition):
                 if len(self.__reduced_rules[file]) < ammount
                 else ammount
             ):
-                self.__rules_per_file[file].append(self.__reduced_rules[file].pop())
+                self.__rules_per_file[file].append(
+                    self.__reduced_rules[file].pop())
             remaining -= itm
         if remaining:
             if allow_mining:
@@ -142,29 +147,35 @@ class DistanceComposition(OptimizedComposition):
                     (body, False)
                 )
         self.NumPatterns += len(patterns)
+        self._raw_patterns += patterns
 
     def addNegativePatterns(self, patterns, orig_pos, supports, track=0):
         for i in range(len(patterns)):
             body = self._pos_pattern_to_composer(patterns[i], orig_pos, track)
             for supp in supports[i]:
-                self.__rules_per_file[self.__seq_num_to_file[supp]].append((body, True))
+                self.__rules_per_file[self.__seq_num_to_file[supp]].append(
+                    (body, True))
         self.NumPatterns += len(patterns)
+        self._raw_patterns += patterns
 
     def addIntervalPatterns(self, patterns, orig_pos, supports, track=0, neg=False):
         for i in range(len(patterns)):
             if neg:
-                body = self._neg_pattern_to_composer(patterns[i], orig_pos, track, True)
+                body = self._neg_pattern_to_composer(
+                    patterns[i], orig_pos, track, True)
                 for sup in supports[i]:
                     self.__rules_per_file[self.__seq_num_to_file[sup]].append(
                         (body, True)
                     )
             else:
-                body = self._pos_pattern_to_composer(patterns[i], orig_pos, track, True)
+                body = self._pos_pattern_to_composer(
+                    patterns[i], orig_pos, track, True)
                 for sup in supports[i]:
                     self.__rules_per_file[self.__seq_num_to_file[sup]].append(
                         (body, False)
                     )
         self.NumPatterns += len(patterns)
+        self._raw_patterns += patterns
 
     def import_minejob(self, minejob):
         def filter_supports(anssets):
@@ -229,7 +240,8 @@ class DistanceComposition(OptimizedComposition):
                 )
         pos = nx.spring_layout(graph)
         nx.draw_networkx_nodes(graph, pos, node_size=1000)
-        nx.draw_networkx_labels(graph, pos, font_size=20, font_family="sans-serif")
+        nx.draw_networkx_labels(graph, pos, font_size=20,
+                                font_family="sans-serif")
         nx.draw_networkx_edges(graph, pos, width=6)
         nx.draw_networkx_edge_labels(graph, pos)
         plt.axis("off")

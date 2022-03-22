@@ -26,11 +26,11 @@ class ComposerModel:
     def Length(self) -> int:
         return self._length
 
-    def to_rules(self) -> str:
+    def to_rules(self, shorthand=True) -> str:
         relevant_notes = self._notes
         previous_head = ''
 
-        if self._previous_length:
+        if self._previous_length and shorthand:
             relevant_notes = [
                 note for note in self._notes if note.position > self._previous_length]
             previous_head = f'm({self._previous_length}),'
@@ -41,7 +41,7 @@ class ComposerModel:
         return [atm for atm in (note.to_individual_atoms() for note in self._notes)]
 
     def get_notes(self) -> List[str]:
-        return [f'{i}.' for i in self._notes]
+        return [f'{i}' for i in self._notes]
 
     def get_window(self, from_timestep: int, to_timestep: int) -> List[Note]:
         return [i for i in self._notes if i.is_played_between(from_timestep, to_timestep)]

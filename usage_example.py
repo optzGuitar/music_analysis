@@ -1,12 +1,13 @@
 import argparse
 import os
 import time
+from Composer.Type.incremental_sliding_window import IncrementalSlidingWindow
 from Composer.Type.sliding_window import SlidingWindow
 
 import Miner
 from Composer.Type.optimizer import OptimizedComposition
 from Miner.Cleanup.circular_patterns import CircularPatternCleanup
-from Miner.strategy import STRATEGY_FREQUENT
+from Miner.strategy import STRATEGY_CONNECTED_MINIMAL_RARE, STRATEGY_FREQUENT, STRATEGY_MINIMAL_RARE, STRATEGY_NEGATIVE, STRATEGY_NEGATIVE_CONNECTED
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -17,9 +18,11 @@ parser.add_argument(
 args = parser.parse_args()
 
 # (45, 75) means all notes between 45 and 75 can be chosen (MIDI equivalent)
-comp = SlidingWindow((45, 75), max_generation_window=10, max_view_window=20)
+# IncrementalSlidingWindow((45, 75), 10, 500, 1)
+# OptimizedComposition((45, 75))
+comp = OptimizedComposition((45, 75))
 # the length of the composition
-comp.Time_Max = 16
+comp.Time_Max = 8
 
 minejob = Miner.Job(positions=[3, 5, 6])
 
@@ -34,7 +37,9 @@ minejob.Parameters["maxdist"] = 3
 
 # adding the following encodings to be used in pattern mining:
 # frequent patterns
-minejob.Strategies.append(STRATEGY_FREQUENT)
+minejob.Strategies.append(STRATEGY_CONNECTED_MINIMAL_RARE)
+# minejob.Strategies.append(STRATEGY_MINIMAL_RARE)
+minejob.Strategies.append(STRATEGY_NEGATIVE_CONNECTED)
 
 # adding example midi files
 FILEPATH = "./test_examples/simple/"
@@ -62,22 +67,24 @@ comp.import_minejob(minejob)
 print("finished importing")
 
 # this step ensures that the program is satisfiable by eliminating contradictory rules
-# comp.validate()
+comp.validate()
 print('finished validating')
 
-start = time.time()
-for _ in range(20):
-    comp.setup_ctl(None, False)
-    a = time.time()
-    comp.ground()
-    b = time.time()
-    print("finished grounding")
+comp.save("./_validatedmodel.lp")
 
-    c = time.time()
-    res, model = comp.generate(timeout=60)
-    d = time.time()
-    print("finished generating")
-    print(f"combined: {d-a:.2f} ground: {b-a:.2f} solve: {d-c:.2f}")
+comp_ = IncrementalSlidingWindow((45, 75), 10, 500, 500)
+comp_.from_composition(comp)
+comp = comp_
+
+start = time.time()
+for _ in range(5):
+    res, _ = comp.step()
+    print(f"finished generating {res}")
+    print(f"combined: {comp._last_step_time}")
+
+    if res.unsatisfiable:
+        break
+
 end_time = time.time()
 print(f"took: {end_time - start:.2f} to generate")
 print(res)

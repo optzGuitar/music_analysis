@@ -1,13 +1,12 @@
+from __future__ import annotations
 from Data.pattern import Pattern
 from Miner.job import Job
 from Miner.strategy import Strategy
 from typing import Iterator, List, Optional, Tuple, Union
 import clingo
 import random
-import re
 from clingo.solving import Model
 from ASPI import ASP_to_MIDI
-from Data.pattern_type import PatternType
 from abc import ABC, abstractmethod
 
 
@@ -35,7 +34,7 @@ class CompositionBase(ABC):
         composer_files : list or None
             If None the default composer files will be loaded. Otherwise the files in the list will be loaded.
         """
-        self._additional_rules: List[Tuple[str, bool]] = []
+        self._patterns: List[Pattern] = []
         self._general_atoms: List[str] = []
         self._composer_files = (
             ["./Composer/asp/keys.lp", "./Composer/asp/notes.lp"]
@@ -124,7 +123,7 @@ class CompositionBase(ABC):
             self._clingo_args = []
 
         self._ctl = clingo.Control(self._clingo_args)
-        self._ctl.configuration.solve.parallel_mode = self._parallel_mode
+        self._ctl.configuration.solve.parallel_mode = self._parallel_mode if self._parallel_mode is not None else "1,compete"
         for file in self._composer_files:
             self._ctl.load(file)
 
@@ -158,33 +157,17 @@ class CompositionBase(ABC):
             model_string = [f"{s}." for s in self._curr_model]
             file.writelines(model_string)
 
-    def from_composition(self, other):
-        self._additional_rules = other._additional_rules
+    def from_composition(self, other: CompositionBase):
+        self._patterns = other._patterns
         self._general_atoms = other._general_atoms
         self.Time_Max = other.Time_Max
         self._key = other._key
         self._range = other._range
 
-    def add_patterns(self, patterns: List[Pattern], track=0):
-        for pattern in patterns:
-            body = pattern.to_rule_body(track, self._seq_distance)
-            if pattern.distance != None:
-                body = self._to_connected(body, pattern.distance)
-            self._additional_rules.append(
-                (body, pattern.type & PatternType.NEGATIVE))
+    def add_patterns(self, patterns: List[Pattern]) -> str:
+        self._patterns += patterns
+
         self.NumPatterns += len(patterns)
-
-    def _to_connected(self, composer_pattern, distance=1):
-        def get_pos(pattern):
-            rgx = re.findall("P[0-9]+", " ".join(pattern))
-            return sorted(list(set(rgx)))
-
-        pos = get_pos(composer_pattern)
-
-        for pos, pos2 in zip(pos[:-1], pos[1:]):
-            composer_pattern.append(f"{pos2}-{pos}<={distance}")
-
-        return composer_pattern
 
     def add_facts(self, facts):
         """

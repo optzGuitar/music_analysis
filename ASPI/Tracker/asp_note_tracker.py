@@ -66,8 +66,9 @@ class ASPNoteTracker:
         return self._ticks_per_beat
 
     def __parse_atoms(self):
-
         for atom in self.atoms:
+            if atom.startswith("trackp"):
+                continue
             if atom.startswith("track"):
                 tracknr = atom[6:-1]
                 tracknr = int(tracknr)
@@ -79,7 +80,7 @@ class ASPNoteTracker:
             if not "(" in atom:
                 continue
             splited = atom.split("(")
-            data = atom[len(splited[0]) + 1 : -1]
+            data = atom[len(splited[0]) + 1: -1]
             if splited[0] in self.ATOM_HANDLER:
                 self.ATOM_HANDLER[splited[0]](data, self)
 
@@ -103,7 +104,8 @@ class ASPNoteTracker:
             Raised if trackid is not valid.
         """
         if trackid not in self.position_per_track:
-            raise AttributeError("The trackid needs to be a valid track number")
+            raise AttributeError(
+                "The trackid needs to be a valid track number")
         self.track = trackid
 
     def do_timestep(self):
@@ -176,7 +178,8 @@ class ASPNoteTracker:
             filter(lambda x: x not in rem_list, self.active_meta[self.track])
         )
         self.remaining_meta[self.track] = list(
-            filter(lambda x: x[0] not in new_meta, self.remaining_meta[self.track])
+            filter(lambda x: x[0] not in new_meta,
+                   self.remaining_meta[self.track])
         )
         self.active_meta[self.track] += new_meta
         return new_meta

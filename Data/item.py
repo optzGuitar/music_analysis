@@ -1,6 +1,8 @@
-from typing import Any
+from typing import Any, Optional
 from Data.sign_enumeration import SignEnumeration
 from dataclasses import dataclass
+from Data.position_to_atom import original_position_to_atom
+
 
 @dataclass
 class Item:
@@ -36,3 +38,11 @@ class Item:
 
     def __str__(self) -> str:
         return f"{self.sign.value}({self.position},{self.value})"
+
+    def to_full_atom(self, atom: int, track: int, position: int, intervals: bool, i: Optional[int] = None) -> str:
+        if intervals:
+            if i is None:
+                raise RuntimeError(
+                    f"Cannot convert {self} to interval atom without i")
+            return f"{original_position_to_atom[atom]}({track},P{position},I{i})"
+        return f"{original_position_to_atom[atom]}({track},P{position},{self.value})"

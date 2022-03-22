@@ -4,17 +4,12 @@ from Data.sign_enumeration import SignEnumeration
 from Data.pattern_type import PatternType
 from typing import Dict, List, Optional, Tuple
 from .item import Item
-_orig_pos_to_atom = {
-    3: NoteAtoms.NOTE_ATOM.value,
-    4: NoteAtoms.VELOCITY_ATOM.value,
-    5: NoteAtoms.LENGTH_ATOM.value,
-    6: NoteAtoms.DISTANCE_ATOM.value,
-}
+from Data.position_to_atom import original_position_to_atom
 
 
 class Pattern:
     def __init__(self, atoms: List, type: PatternType, position: int, are_intervals: bool, distance: Optional[int]) -> None:
-        items = []  # type: List[Item]
+        items: List[Item] = []
 
         try:
             for atm in atoms:
@@ -22,9 +17,9 @@ class Pattern:
                     continue
                 items.append(
                     Item(
-                        int(str(atm.arguments[0])),
-                        str(atm.arguments[1]),
-                        SignEnumeration(str(atm).split("(")[0])
+                        position=int(str(atm.arguments[0])),
+                        value=str(atm.arguments[1]),
+                        sign=SignEnumeration(str(atm).split("(")[0])
                     )
                 )
         except AttributeError:
@@ -36,6 +31,10 @@ class Pattern:
         self.position = position if position > 0 else position * -1
         self.are_intervals = are_intervals
         self.distance = distance
+
+    @property
+    def is_negative(self):
+        return self.type & PatternType.NEGATIVE
 
     def __eq__(self, o: object) -> bool:
         if isinstance(o, Pattern):
@@ -63,64 +62,91 @@ class Pattern:
             track, pattern_max_distance)
 
         kept_data = []
-        for atms, posiiton_rules, interval_rules in zip(atoms.items(), pos.items(), interv.items()):
-            pos = atms[0]
-            if length is None or pos < length:
+        for atms, posiiton_rules, interval_rules in self.clever_zip(atoms, pos, interv):
+            position = atms[0]
+            if length is None or position < length:
                 kept_data += atms[1] + posiiton_rules[1] + interval_rules[1]
 
         return ','.join(kept_data)
 
-    def _to_full_rule_body_parts(self, track, pattern_max_distance) -> Tuple[Dict[int, List[str]], Dict[int, List[str]], Dict[int, List[str]]]:
+    def _to_full_rule_body_parts(self, track, pattern_max_distance=None) -> Tuple[Dict[int, List[str]], Dict[int, List[str]], Dict[int, List[str]]]:
         atoms: Dict[int, List[str]] = defaultdict(list)
         pos_restrictions: Dict[int, List[str]] = defaultdict(list)
         interval_restrictions: Dict[int, List[str]] = defaultdict(list)
         pos = 0
-        i = 0
-        last_neg = False
         ints: List[int] = []
         last_pos_i = 0
-        chooseatom = _orig_pos_to_atom[self.position]
 
-        for l, itm in enumerate(self.items):
-            atoms[pos], pos_restrictions[pos], interval_restrictions[pos]
+        for i, itm in enumerate(self.items):
+            full_atom = itm.to_full_atom(
+                atom=self.position,
+                track=track,
+                position=pos,
+                intervals=self.are_intervals,
+                i=i
+            )
+            # "neg " if ...
+            prior = "" if self.is_negative and itm.sign == SignEnumeration.POS else ""
+            atoms[pos].append(f"{prior}{full_atom}")
 
-            if itm.sign == SignEnumeration.POS and last_neg:
+            if i == 0:
                 pos += 1
-                pos_restrictions[pos].append(f"P{pos-1}<P{pos}")
-                if self.are_intervals:
-                    interval_restrictions[pos].append(
-                        f"I{i+1}-I{i}={itm.value}")
-
-            if not self.are_intervals:
-                atoms[pos].append(f"{chooseatom}({track},P{pos},{itm.value})")
-            else:
-                atoms[pos].append(f"{chooseatom}({track},P{pos},I{i})")
+                continue
 
             if itm.sign == SignEnumeration.POS:
                 last_pos_i = i
-                pos += 1
-                if l != len(self.items) - 1:
-                    pos_restrictions[pos].append(f"P{pos-1}<P{pos}")
-                    if self.are_intervals:
-                        if l != len(self.items):
-                            interval_restrictions[pos].append(
-                                f"I{i+1}-I{i}={itm.value}")
+                pos_restrictions[pos].append(f"P{pos-1}<P{pos}")
+                if self.are_intervals:
+                    if ints:
                         for _i in ints:
                             interval_restrictions[pos].append(
-                                f"I{i}-I{_i}={itm.value}")
+                                f"I{i}-I{_i}={itm.value}"
+                            )
                         ints.clear()
-                last_neg = False
-            else:
+                    else:
+                        interval_restrictions[pos].append(
+                            f"I{i}-I{i-1}={itm.value}"
+                        )
+                pos += 1
+            elif itm.sign == SignEnumeration.NEG:
                 if self.are_intervals:
                     interval_restrictions[pos].append(
                         f"I{i}-I{last_pos_i}={itm.value}")
                     ints.append(i)
-                last_neg = True
-
-            i += 1
+            else:
+                raise ValueError(
+                    f"{itm} sign has a unhandled value {itm.sign}")
 
         if pattern_max_distance is not None:
             pos_restrictions[pos].append(
                 f"P{pos-1}-P0 <= {pattern_max_distance},P{pos-1}-P0>0")
+        elif self.distance is not None:
+            pos_restrictions[pos].append(
+                f"P{pos-1}-P0 <= {self.distance},P{pos-1}-P0>0")
+
+        if self.are_intervals:
+            atoms[pos].append(
+                Item.to_full_atom(
+                    None,
+                    atom=self.position,
+                    track=track,
+                    position=pos,
+                    intervals=self.are_intervals,
+                    i=len([itm for itm in self.items if itm.sign ==
+                          SignEnumeration.POS])
+                )
+            )
 
         return atoms, pos_restrictions, interval_restrictions
+
+    def clever_zip(self, *args: List[Dict]):
+        max_len = max([max(i.keys(), default=-1) for i in args])
+        for i in range(max_len + 1):
+            data = []
+            for di in args:
+                if i in di:
+                    data.append((i, di[i]))
+                else:
+                    data.append((i, []))
+
+            yield tuple(data)
