@@ -7,7 +7,7 @@ distances(D)    :- notep(_,_,_,_,_,_,D).
 
 #show note/7.
 #show key(T,P,R,K) : keys(T,P,(R,K)).
-#show  track/1.
+#show track/1.
 
 #program step(t).
 % generator for note properties
