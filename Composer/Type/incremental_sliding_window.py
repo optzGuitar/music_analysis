@@ -1,16 +1,11 @@
-from collections import defaultdict
-from curses import window
 import time
 from typing import List, Optional, Tuple
 
 import clingo
 from ASPI import ASP_to_MIDI
-from Composer.Type.base import CompositionBase
 
 from Composer.Type.incremental import Incremental
-from Composer.Type.sliding_window import SlidingWindow
 from Data.composer_model import ComposerModel
-from Miner.job import Job
 
 
 class IncrementalSlidingWindow(Incremental):
@@ -22,7 +17,6 @@ class IncrementalSlidingWindow(Incremental):
         self._reset_window = reset_window
         self._max_generation_time = max_generation_time
 
-        self._iteration = 0
         self._delta_iteration = 0
 
         self._last_step_time = 0
@@ -54,7 +48,6 @@ class IncrementalSlidingWindow(Incremental):
         stop = time.perf_counter()
         self._last_step_time = stop - start
 
-        self._iteration += 1
         self._delta_iteration += 1
         self._just_resetted = self._just_resetted[1], False
 
@@ -73,8 +66,7 @@ class IncrementalSlidingWindow(Incremental):
 
     def _reset(self):
         self.setup_ctl()
-        self._rule_selector_service._grounded_rules = 0
-        self._rule_selector_service._grounded_length = self._reset_window
+        self._rule_selector_service.reset(self._reset_window)
         self._last_step_time = 0
         self._delta_iteration = 0
         self._just_resetted = True, True
@@ -88,7 +80,8 @@ class IncrementalSlidingWindow(Incremental):
             )
         ]
 
-        return [i for note in window_notes for i in note.to_individual_atoms()]
+        selected_length = len(window_notes)
+        return [atom for i, note in enumerate(window_notes) for atom in note.to_individual_atoms(i - selected_length)]
 
     def save(self, path):
         """

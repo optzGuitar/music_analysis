@@ -39,18 +39,24 @@ class Note:
         return f"note({self.track},{self.position},{self.channel},{self.pitch},{self.velocity}," \
             f"({self.length.numerator},{self.length.denominator}),({self.distance.numerator},{self.distance.denominator}))."
 
-    def to_individual_atoms(self) -> List[str]:
+    def to_individual_atoms(self, position_override: Optional[int] = None) -> List[str]:
         return [
-            self._construct_atom(NoteAtoms.NOTE_ATOM, str(self.pitch)),
-            self._construct_atom(NoteAtoms.VELOCITY_ATOM, str(self.velocity)),
+            self._construct_atom(NoteAtoms.NOTE_ATOM, str(
+                self.pitch), position_override=position_override),
+            self._construct_atom(NoteAtoms.VELOCITY_ATOM, str(
+                self.velocity), position_override=position_override),
             self._construct_atom(
-                NoteAtoms.LENGTH_ATOM, f"({self.length.numerator},{self.length.denominator})"),
+                NoteAtoms.LENGTH_ATOM, f"({self.length.numerator},{self.length.denominator})", position_override=position_override),
             self._construct_atom(
-                NoteAtoms.DISTANCE_ATOM, f"({self.distance.numerator},{self.distance.denominator})")
+                NoteAtoms.DISTANCE_ATOM, f"({self.distance.numerator},{self.distance.denominator})", position_override=position_override)
         ]
 
-    def _construct_atom(self, atom: NoteAtoms, value: str) -> str:
-        return f"{atom.value}({self.track},{self.position},{value})."
+    def _construct_atom(self, atom: NoteAtoms, value: str, position_override: Optional[int] = None) -> str:
+        pos = position_override
+        if pos is None:
+            pos = self.position
+
+        return f"{atom.value}({self.track},{pos},{value})."
 
     def is_played_between(self, from_timestep: int, to_timestep: int) -> bool:
         return from_timestep <= self.position < to_timestep

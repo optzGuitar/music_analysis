@@ -88,10 +88,8 @@ class Incremental(Composition):
             rules = self._rule_selector_service.get_rules_for_length(
                 to_timestep)
 
-        if not rules:
-            x = 1
-
         self._add_basic_atoms(from_timestep, to_timestep)
+        # BUG: second iteration (with or without reset) seems to kill all patterns
         self._add_old_models(chain_models)
 
         if rules:

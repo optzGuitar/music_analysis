@@ -36,3 +36,7 @@ class RuleSelectorBase(ABC):
             rule, force = self._create_positive_constraint(
                 pattern, track, length)
             return [rule, force]
+
+    def reset(self, grounded_length: int):
+        self._grounded_rules = 0
+        self._grounded_length = grounded_length
